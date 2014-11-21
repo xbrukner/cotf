@@ -1,0 +1,2 @@
+defmodule Cotf do
+end
