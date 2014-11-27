@@ -10,6 +10,11 @@ defmodule RoadMapTest do
     assert RoadMap.edges(m) |>
       Enum.count == 27
 
+    assert RoadMap.edges(m, "I") |>
+      Enum.count == 2
+
+    assert RoadMap.edges(m, "D") |>
+      Enum.count == 5
   end
 end
 

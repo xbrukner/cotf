@@ -1,5 +1,7 @@
 defmodule RoadMap do
-  defstruct map: nil 
+  defstruct map: nil
+
+
 
   def new(filename) do
     File.read!(filename)
@@ -25,12 +27,6 @@ defmodule RoadMap do
     state
   end
 
-  defp parser([v | rest], state, :vertices) do
-    #TODO - coordinates in the future
-    :digraph.add_vertex(state.map, v) 
-    parser(rest, state, :vertices)
-  end
-
   defp parser([e | rest], state, :edges) do
     data = String.split(e, " ")
     [from, to, length] = Enum.take(data, 3)
@@ -46,11 +42,19 @@ defmodule RoadMap do
   end
 
   def vertices(map) do
-    map.map.vertices()
+    :digraph.vertices(map.map)
   end
 
   def edges(map) do
-    map.map.edges()
+    :digraph.edges(map.map)
+  end
+
+  def edges(map, from) do
+    :digraph.out_edges(map.map, from)
+      |> Enum.map(fn e -> 
+          {_edge, from, to, length} = :digraph.edge(map.map, e) 
+          {from, to, length}
+        end)
   end
 end
 
