@@ -13,7 +13,14 @@ defmodule OracleTest do
     m = RoadMap.new("sample_map.txt")
     o = Oracle.new(m)
     
-    assert Oracle.vertex_time(o, "A", "B", "C", 4) == 0
-    assert Oracle.vertex_time(o, "A", "B", "C", 5) == 0
+    assert Oracle.vertex_time(o, "A", "B", "C", 4) == 1
+    assert Oracle.vertex_time(o, "A", "B", "C", 5) == 1
   end
+
+  test "Zero time for starting vertex" do
+    m = RoadMap.new("sample_map.txt")
+    o = Oracle.new(m)
+
+    assert Oracle.vertex_time(o, nil, "A", "B", 3) == 0
+   end 
 end

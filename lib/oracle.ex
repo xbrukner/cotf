@@ -12,9 +12,14 @@ defmodule Oracle do
       |> String.to_integer
   end
 
+#From may be nil if the route starts here
+  def vertex_time(_map, nil, _via, _to, _timeframe) do
+    0
+  end
+
   def vertex_time(_map, _from, _via, _to, _timeframe) do
     #TODO
-    0
+    1
   end
 end
 
