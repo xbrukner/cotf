@@ -37,10 +37,7 @@ defmodule Planner do
     current = Dict.get(times, time)
 
 #There is no option to delete data from the minheap, so filter out already visited nodes
-    current = Enum.filter(current, 
-      fn (v) -> 
-        not Dict.has_key?(vertices, v) or not Dict.get(vertices, v).visited
-      end)
+    current = Enum.filter(current, fn (v) -> not Dict.get(vertices, v).visited end)
 
     {vertices, times, queue, found} = handleDistance(planner, to, current, vertices, times, queue)
     if found do
