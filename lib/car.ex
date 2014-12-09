@@ -1,9 +1,9 @@
 defmodule Car do
-  defstruct from: nil, start_time: 0, to: nil, plan: nil, planner: nil
+  defstruct from: nil, start_time: 0, to: nil, plan: nil, global: nil
   use GenServer
 
-  def new(from, start_time, to, planner) do
-    {:ok, pid} = GenServer.start_link(__MODULE__, {from, start_time, to, planner})
+  def new(from, start_time, to, global) do
+    {:ok, pid} = GenServer.start_link(__MODULE__, {from, start_time, to, global})
     pid
   end
 
@@ -16,8 +16,8 @@ defmodule Car do
   end
 
 
-  def init({from, start_time, to, planner}) do
-    {:ok, %Car{from: from, start_time: start_time, to: to, planner: planner}}
+  def init({from, start_time, to, global}) do
+    {:ok, %Car{from: from, start_time: start_time, to: to, global: global}}
   end
 
   def handle_call(:info, _from, state) do
@@ -26,7 +26,7 @@ defmodule Car do
 
   def handle_call(:calculate_plan, _from, state) do
     #TODO - start_time
-    plan = Planner.route(state.planner, state.from, state.to)
+    plan = Planner.route(state.global.planner, state.from, state.to)
     state = %Car{state | plan: plan}
     {:reply, :ok, state}
   end

@@ -9,6 +9,15 @@ defmodule PlannerTest do
     assert %Planner{} = planner
   end
 
+  test "Can be created from Global" do
+    map = RoadMap.new("sample_map.txt")
+    oracle = Oracle.new(map)
+    global = %Global{map: map, oracle: oracle}
+    
+    planner = Planner.new(global)
+    assert %Planner{} = planner
+  end
+
   test "Can find a route with one edge" do
     map = RoadMap.new("sample_map.txt")
     oracle = Oracle.new(map)

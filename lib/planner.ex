@@ -5,6 +5,10 @@ defmodule Planner do
     defstruct visited: false, time: 0, vertexTime: 0, edgeTime: 0, previous: nil
   end
 
+  def new(%Global{} = g) do
+    %Planner{map: g.map, oracle: g.oracle}
+  end
+
   def new(map, oracle) do
     %Planner{map: map, oracle: oracle}
   end

@@ -8,12 +8,13 @@ defmodule CarTest do
 
   end
 
-  test "Car can calculate route from planner" do
+  test "Car can calculate route from global" do
     m = RoadMap.new("sample_map.txt")
     o = Oracle.new(m)
-    p = Planner.new(m, o)
+    g = %Global{ map: m, oracle: o}
+    g = %{ g | planner: Planner.new(g) }
 
-    c = Car.new("A", 20, "B", p)
+    c = Car.new("A", 20, "B", g)
 
     :ok = Car.calculate_plan(c)
     info = Car.get_info(c)
