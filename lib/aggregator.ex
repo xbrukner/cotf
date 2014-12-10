@@ -25,12 +25,16 @@ defmodule Aggregator do
     j_tf = state.global.timeframe.(junction_time)
 
     default_s = Dict.put_new(%{}, s_tf, 1)
-    default_j = Dict.put_new(%{}, j_tf, 1)
-
     segments = HashDict.update(state.segments, {from, via}, 
               default_s, fn(d) -> Dict.update(d, s_tf, 1, &(&1 + 1)) end )
-    junctions = HashDict.update(state.junctions, {from, via, to}, 
-              default_j, fn(d) -> Dict.update(d, j_tf, 1, &(&1 + 1)) end )
+
+    if to != nil do
+      default_j = Dict.put_new(%{}, j_tf, 1)
+      junctions = HashDict.update(state.junctions, {from, via, to}, 
+                default_j, fn(d) -> Dict.update(d, j_tf, 1, &(&1 + 1)) end )
+    else
+      junctions = state.junctions
+    end
     
     {:noreply, %Aggregator{ global: state.global, segments: segments, junctions: junctions } }
   end
