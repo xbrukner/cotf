@@ -23,6 +23,6 @@ defmodule SingleDelayTest do
     m = RoadMap.new("sample_map.txt")
     g = %Global{map: m}
 
-    assert SingleDelay.junction(g, 30, "A", "B", "C") == 0
+    assert SingleDelay.junction(g, 30, "A", "B") == 61 
   end
 end
