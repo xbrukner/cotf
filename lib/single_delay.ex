@@ -1,16 +1,16 @@
 defmodule SingleDelay do
 
-  def segment(global, number_of_cars, from, to) do
+  def segment_calc_fn(global, from, to) do
     map = global.map
 
-    length = RoadMap.edges(map, from) #Outgoing
-      |> Enum.find(fn ({_f, t, _l}) -> t == to end) #Find this one
-      |> elem(2) #Extract length
-      |> Float.parse #Parse to {float, rest}
-      |> elem(0) #Choose float
-
+    length = RoadMap.length(map, from, to)
     type = 1 #TODO
-    {_speed, duration} = segment_calculation(global.tf_duration, number_of_cars, length, type)
+    &(segment_calculation(global.tf_duration, &1, length, type))
+  end
+
+  def segment(global, number_of_cars, from, to) do
+    calc_fn = segment_calc_fn(global, from, to)
+    {_speed, duration} = calc_fn.(number_of_cars)
     duration
   end
 

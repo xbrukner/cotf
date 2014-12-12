@@ -56,6 +56,14 @@ defmodule RoadMap do
           {from, to, length}
         end)
   end
+
+  def length(map, from, to) do
+    RoadMap.edges(map, from) #Outgoing
+      |> Enum.find(fn ({_f, t, _l}) -> t == to end) #Find this one
+      |> elem(2) #Extract length
+      |> Float.parse #Parse to {float, rest}
+      |> elem(0) #Choose float
+  end
 end
 
 
