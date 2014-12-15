@@ -21,8 +21,16 @@ defmodule SingleDelayTest do
   test "Can calculate single delay for junction" do
     #Sample test
     m = RoadMap.new("sample_map.txt")
-    g = %Global{map: m}
+    g = %Global{map: m, tf_duration: 60}
 
-    assert SingleDelay.junction(g, 30, "A", "B") == 61 
+    assert_in_delta SingleDelay.junction(g, 1, "A", "B"), 7.627118644, 0.0001
+    assert_in_delta SingleDelay.junction(g, 10, "A", "B"), 9, 0.0001
+    assert_in_delta SingleDelay.junction(g, 15, "A", "B"), 10, 0.0001
+    assert_in_delta SingleDelay.junction(g, 20, "A", "B"), 11.25, 0.0001
+    assert_in_delta SingleDelay.junction(g, 25, "A", "B"), 21.59324539, 0.0001
+    assert_in_delta SingleDelay.junction(g, 30, "A", "B"), 41.83281573, 0.0001
+    assert_in_delta SingleDelay.junction(g, 40, "A", "B"), 64.10215414, 0.0001
+    assert_in_delta SingleDelay.junction(g, 60, "A", "B"), 97.41661517, 0.0001
+
   end
 end

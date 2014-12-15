@@ -6,8 +6,9 @@ defmodule DelayTest do
     g = %Global{map: m, tf_duration: 60}
     cars = %{0 => 30, 1 => 4, 3 => 20}
 
-#Checked manually, it calls static function now
-    assert Delay.junction(g, "A", "B", cars) == %{0 => 61, 1 => 62, 3 => 61}
+#Check if needed
+    assert Delay.junction(g, "A", "B", cars) == %{0 => 41.83281572999747, 1 => 8.035714285714285,
+             3 => 11.249999999999998}
   end
 
   test "Segment delay" do
