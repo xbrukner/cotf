@@ -96,5 +96,23 @@ defmodule Delay do
   defp distance_from_speeds([{_speed, length, time} | r_speeds], time_diff, distance) do
     distance_from_speeds(r_speeds, time_diff - time, distance + length)
   end
+
+
+#Spawning
+  def spawn_junction(global, from, via, cars, result_fn, counter) do
+    spawn fn ->
+      junction(global, from, via, cars)
+        |> result_fn.()
+      Counter.finished(counter)
+    end
+  end
+
+  def spawn_segment(global, from, to, cars, result_fn, counter) do
+    spawn fn ->
+      segment(global, from, to, cars)
+        |> result_fn.()
+      Counter.finished(counter)
+    end
+  end
 end
 

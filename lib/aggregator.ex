@@ -21,8 +21,9 @@ defmodule Aggregator do
   end
 
   def handle_cast({:insert, from, via, to, segment_time, junction_time}, state) do
-    s_tf = state.global.timeframe.(segment_time)
-    j_tf = state.global.timeframe.(junction_time)
+    timeframe_fn = Global.timeframe_fn(state.global)
+    s_tf = timeframe_fn.(segment_time)
+    j_tf = timeframe_fn.(junction_time)
 
     default_s = Dict.put_new(%{}, s_tf, 1)
     segments = HashDict.update(state.segments, {from, via}, 

@@ -10,24 +10,25 @@ defmodule CarTest do
 
   test "Car can calculate route from global" do
     m = RoadMap.new("sample_map.txt")
-    o = Oracle.new(m)
-    g = %Global{ map: m, oracle: o}
-    g = %{ g | planner: Planner.new(g) }
+    g = %Global{ map: m, tf_duration: 60}
+    g = %Global{ g | oracle: Oracle.new(g) }
+    g = %{ g | planner: Planner.new(g)}
+    Oracle.calculate_default(g.oracle)
 
     c = Car.new("A", 20, "B", g)
 
     :ok = Car.calculate_plan(c)
     info = Car.get_info(c)
     
-    assert info.plan == %Plan{from: "A", steps: [{"B", 0, 6}], time: 6, to: "B"}
+    assert info.plan == %Plan{from: "A", steps: [{"B", 0, 256.90093903679565}], time: 256.90093903679565, to: "B"}
   end
 
   test "Car can submit the road to Aggregator" do
     m = RoadMap.new("sample_map.txt")
-    o = Oracle.new(m)
-    g = %Global{ map: m, oracle: o, timeframe: &(&1)}
-    g = %{ g | planner: Planner.new(g) }
-    g = %{ g | aggregator: Aggregator.new(g) }
+    g = %Global{ map: m, tf_duration: 1}
+    g = %Global{ g | oracle: Oracle.new(g) }
+    g = %{ g | planner: Planner.new(g), aggregator: Aggregator.new(g)}
+    Oracle.calculate_default(g.oracle)
 
     c = Car.new("A", 0, "H", g)
 
@@ -35,10 +36,10 @@ defmodule CarTest do
     :ok = Car.send_plan(c)
     
     info = Aggregator.get_info(g.aggregator)
-    assert Dict.get(info.junctions, {"A", "G", "I"}) == %{4 => 1}
-    assert Dict.get(info.junctions, {"G", "I", "H"}) == %{6 => 1}
-    assert Dict.get(info.segments, {"I", "H"}) == %{7 => 1}
-    assert Dict.get(info.segments, {"G", "I"}) == %{5 => 1}
+    assert Dict.get(info.junctions, {"A", "G", "I"}) == %{1909 => 1}
+    assert Dict.get(info.junctions, {"G", "I", "H"}) == %{2468 => 1}
+    assert Dict.get(info.segments, {"I", "H"}) == %{2549 => 1}
+    assert Dict.get(info.segments, {"G", "I"}) == %{1990 => 1}
     assert Dict.get(info.segments, {"A", "G"}) == %{0 => 1}
   end
 end

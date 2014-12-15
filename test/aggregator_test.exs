@@ -3,9 +3,8 @@ defmodule AggregatorTest do
 
   test "Aggregator can start from global" do
     m = RoadMap.new("sample_map.txt")
-    o = Oracle.new(m)
-    g = %Global{ map: m, oracle: o, timeframe: &(div(&1, 10)) }
-    g = %{ g | planner: Planner.new(g) }
+    g = %Global{ map: m, tf_duration: 10 }
+    g = %{ g | planner: Planner.new(g), oracle: Oracle.new(g) }
 
     a = Aggregator.new(g)
     assert Process.alive?(a)
@@ -13,9 +12,8 @@ defmodule AggregatorTest do
 
   test "Aggregator can insert time" do
     m = RoadMap.new("sample_map.txt")
-    o = Oracle.new(m)
-    g = %Global{ map: m, oracle: o, timeframe: &(div(&1, 10))}
-    g = %{ g | planner: Planner.new(g) }
+    g = %Global{ map: m, tf_duration: 10}
+    g = %{ g | planner: Planner.new(g), oracle: Oracle.new(g) }
 
     a = Aggregator.new(g)
   
