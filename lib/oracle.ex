@@ -28,6 +28,14 @@ defmodule Oracle do
     GenServer.call(pid, {:default, type, from, to, Dict.fetch!(estimation, 0)})
   end
 
+  def reset_current(pid) do
+    GenServer.call(pid, :reset_current)
+  end
+
+  def current_delay_result(pid, type, from, to, dict) do
+    GenServer.call(pid, {:current, type, from, to, dict})
+  end
+
 #GenServer
   def init({global}) do
     {:ok, %Oracle{global: global, default_junction: HashDict.new, default_segment: HashDict.new, current_junction: HashDict.new, current_segment: HashDict.new} }
@@ -81,6 +89,30 @@ defmodule Oracle do
     {:noreply, state}
   end
 
+  def handle_call({:default, :segment, from, to, time}, _from, state) do
+    segments = Dict.put_new(state.default_segment, {from, to}, time)
+    {:reply, :ok, %Oracle{ state | default_segment: segments} }
+  end
+
+  def handle_call({:default, :junction, from, via, time}, _from, state) do
+    junctions = Dict.put_new(state.default_junction, {from, via}, time)
+    {:reply, :ok, %Oracle{ state | default_junction: junctions} }
+  end
+
+  def handle_call({:current, :segment, from, to, dict}, _from, state) do
+    segments = Dict.put_new(state.current_segment, {from, to}, dict)
+    {:reply, :ok, %Oracle{ state | current_segment: segments} }
+  end
+
+  def handle_call({:current, :junction, from, via, dict}, _from, state) do
+    junctions = Dict.put_new(state.current_junction, {from, via}, dict)
+    {:reply, :ok, %Oracle{ state | current_junction: junctions} }
+  end  
+
+  def handle_call(:reset_current, _from, state) do
+    {:reply, :ok, %Oracle{ state | current_segment: HashDict.new(), current_junction: HashDict.new()}}
+  end
+
   defp spawn_default({from, to, _}, global, counter) do
     pid = self()
 #Create calls to junctions
@@ -91,16 +123,6 @@ defmodule Oracle do
     Counter.started(counter)
     segment_fn = &default_delay_result(pid, :segment, from, to, &1)
     Delay.spawn_segment(global, from, to, %{0 => 1}, segment_fn, counter)
-  end
-
-  def handle_call({:default, :segment, from, to, time}, _from, state) do
-    segments = Dict.put_new(state.default_segment, {from, to}, time)
-    {:reply, :ok, %{ state | default_segment: segments} }
-  end
-
-  def handle_call({:default, :junction, from, via, time}, _from, state) do
-    junctions = Dict.put_new(state.default_junction, {from, via}, time)
-    {:reply, :ok, %{ state | default_junction: junctions} }
   end
 end
 

@@ -35,4 +35,23 @@ defmodule OracleTest do
 
     assert Oracle.vertex_time(o, nil, "A", "B", 3) == 0
    end 
+
+  test "Can insert and delete current" do
+    m = RoadMap.new("sample_map.txt")
+    g = %Global{map: m, tf_duration: 60} 
+    o = Oracle.new(g)
+    Oracle.calculate_default(o)
+
+    Oracle.current_delay_result(o, :segment, "A", "B", %{0 => 3, 3 => 5})
+    Oracle.current_delay_result(o, :junction, "A", "B", %{2 => 4, 6 => 1})
+
+    assert Oracle.edge_time(o, "A", "B", 0) == 3
+    assert Oracle.edge_time(o, "A", "B", 180) == 5
+    assert Oracle.vertex_time(o, "A", "B", "C", 120) == 4
+    assert Oracle.vertex_time(o, "A", "B", "C", 360) == 1
+
+    Oracle.reset_current(o)
+    assert Oracle.edge_time(o, "A", "B", 0) == 256.90093903679565
+    
+  end
 end

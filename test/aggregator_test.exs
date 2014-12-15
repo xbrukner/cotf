@@ -19,17 +19,33 @@ defmodule AggregatorTest do
   
     Aggregator.insert(a, "A", "B", "C", 5, 10)
     info = Aggregator.get_info(a)
-    assert Dict.get(info.junctions, {"A", "B", "C"}) == %{1 => 1}
+    assert Dict.get(info.junctions, {"A", "B"}) == %{1 => 1}
     assert Dict.get(info.segments, {"A", "B"}) == %{0 => 1}
 
     Aggregator.insert(a, "A", "B", "C", 5, 10)
     info = Aggregator.get_info(a)
-    assert Dict.get(info.junctions, {"A", "B", "C"}) == %{1 => 2}
+    assert Dict.get(info.junctions, {"A", "B"}) == %{1 => 2}
     assert Dict.get(info.segments, {"A", "B"}) == %{0 => 2}
 
     Aggregator.insert(a, "A", "B", "C", 10, 3)
     info = Aggregator.get_info(a)
-    assert Dict.get(info.junctions, {"A", "B", "C"}) == %{0 => 1, 1 => 2}
+    assert Dict.get(info.junctions, {"A", "B"}) == %{0 => 1, 1 => 2}
     assert Dict.get(info.segments, {"A", "B"}) == %{0 => 2, 1 => 1}
+  end
+
+  test "Aggregator can submit to Oracle" do
+    m = RoadMap.new("sample_map.txt")
+    g = %Global{ map: m, tf_duration: 60}
+    g = %{ g | planner: Planner.new(g), oracle: Oracle.new(g) }
+
+    a = Aggregator.new(g)
+
+    Aggregator.insert(a, "A", "B", "C", 0, 60)
+    Aggregator.insert(a, "A", "B", "C", 0, 60)
+    Aggregator.insert(a, "A", "B", "C", 0, 60)
+
+    Aggregator.calculate_delay(a)
+    assert Oracle.vertex_time(g.oracle, "A", "B", "C", 60) == 7.894736842105264
+    assert Oracle.edge_time(g.oracle, "A", "B", 0) == 257.90812131813016
   end
 end

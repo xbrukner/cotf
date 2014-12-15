@@ -36,8 +36,8 @@ defmodule CarTest do
     :ok = Car.send_plan(c)
     
     info = Aggregator.get_info(g.aggregator)
-    assert Dict.get(info.junctions, {"A", "G", "I"}) == %{1909 => 1}
-    assert Dict.get(info.junctions, {"G", "I", "H"}) == %{2468 => 1}
+    assert Dict.get(info.junctions, {"A", "G"}) == %{1909 => 1}
+    assert Dict.get(info.junctions, {"G", "I"}) == %{2468 => 1}
     assert Dict.get(info.segments, {"I", "H"}) == %{2549 => 1}
     assert Dict.get(info.segments, {"G", "I"}) == %{1990 => 1}
     assert Dict.get(info.segments, {"A", "G"}) == %{0 => 1}

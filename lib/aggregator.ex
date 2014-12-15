@@ -15,6 +15,10 @@ defmodule Aggregator do
     GenServer.call(pid, :info)
   end
 
+  def calculate_delay(pid) do
+     :calculated = GenServer.call(pid, :calculate)
+  end
+
 #GenServer
   def init(g) do
     {:ok, %Aggregator{ global: g, segments: HashDict.new(), junctions: HashDict.new() } }
@@ -31,17 +35,38 @@ defmodule Aggregator do
 
     if to != nil do
       default_j = Dict.put_new(%{}, j_tf, 1)
-      junctions = HashDict.update(state.junctions, {from, via, to}, 
+      junctions = HashDict.update(state.junctions, {from, via}, 
                 default_j, fn(d) -> Dict.update(d, j_tf, 1, &(&1 + 1)) end )
     else
       junctions = state.junctions
     end
-    
     {:noreply, %Aggregator{ global: state.global, segments: segments, junctions: junctions } }
   end
 
   def handle_call(:info, _from, state) do
     {:reply, state, state}
+  end
+
+  def handle_call(:calculate, from, state) do
+    counter = Counter.new(fn (_) -> GenServer.reply(from, :calculated) end)
+    #Get all segments
+    Enum.each state.segments, &spawn_current(:segment, &1, state.global, counter)
+
+    #Get all junctions
+    Enum.each state.junctions, &spawn_current(:junction, &1, state.global, counter)
+
+    Counter.all_started(counter)
+    {:noreply, state}
+  end
+
+  defp spawn_current(type, {{from, to}, dict}, global, counter) do
+    Counter.started(counter)
+    finish_fn = &Oracle.current_delay_result(global.oracle, type, from, to, &1)
+    if type == :junction do
+      Delay.spawn_junction(global, from, to, dict, finish_fn, counter)
+    else
+      Delay.spawn_segment(global, from, to, dict, finish_fn, counter)
+    end
   end
 end
 
