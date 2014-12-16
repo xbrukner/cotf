@@ -18,4 +18,16 @@ defmodule PlanTest do
 
     assert p.steps == [ {"B", 4, 1}, {"C", 5, 2}, {"D", 6, 3} ]
   end
+
+  test "Plan can calculate length" do
+    m = RoadMap.new("sample_map.txt")
+    g = %Global{map: m}
+    p = Plan.new("A", "F", 21)
+
+    p = Plan.prependStep(p, "F", 3, 6)
+    p = Plan.prependStep(p, "C", 2, 5)
+    p = Plan.prependStep(p, "B", 1, 4)
+    
+    assert Plan.calculateLength(g, p) == 6 + 4 + 2
+  end
 end

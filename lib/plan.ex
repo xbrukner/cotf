@@ -30,5 +30,13 @@ defmodule Plan do
       steps: [{toVertex, vertexTime, edgeTime}] ++ plan.steps
     }
   end
+
+  def calculateLength(global, plan) do
+    Enum.reduce(plan.steps, {plan.from, 0}, fn ({to, _vt, _et}, {from, total}) ->
+        {length, _type} = RoadMap.length_type(global.map, from, to)
+        {to, total + length}
+      end)
+    |> elem(1)
+  end
 end
 
