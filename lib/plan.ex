@@ -12,6 +12,13 @@ defmodule Plan do
 # {B, C, nil, 3, nil}
 
 # Last edge time is only for total travel time, is never sent to the server
+  def empty() do
+    %Plan{}  
+  end
+
+  def empty?(plan) do
+    plan == %Plan{}
+  end
 
   def new(from, to, time) do
     %Plan{ from: from, to: to, time: time }

@@ -101,6 +101,7 @@ defmodule Delay do
 #Spawning
   def spawn_junction(global, from, via, cars, result_fn, counter) do
     spawn fn ->
+      cars = Enum.filter cars, fn {_, v} -> v > 0 end
       junction(global, from, via, cars)
         |> result_fn.()
       Counter.finished(counter)
@@ -109,6 +110,7 @@ defmodule Delay do
 
   def spawn_segment(global, from, to, cars, result_fn, counter) do
     spawn fn ->
+      cars = Enum.filter cars, fn {_, v} -> v > 0 end
       segment(global, from, to, cars)
         |> result_fn.()
       Counter.finished(counter)

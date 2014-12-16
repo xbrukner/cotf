@@ -4,7 +4,7 @@ defmodule CarTest do
   test "Car has current location, starting time and finish" do
     c = Car.new("A", 20, "B", nil)
 
-    assert %Car{from: "A", start_time: 20, to: "B"} == Car.get_info(c)
+    assert Kernel.match? %Car{from: "A", start_time: 20, to: "B"}, Car.get_info(c)
 
   end
 

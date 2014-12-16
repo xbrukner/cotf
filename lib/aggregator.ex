@@ -7,8 +7,17 @@ defmodule Aggregator do
     pid
   end
 
-  def insert(pid, from, via, to, segment_time, junction_time) do
+  def insert(pid, {from, via, to, segment_time, junction_time}) do
     GenServer.cast(pid, {:insert, from, via, to, segment_time, junction_time})
+  end
+
+  def delete(pid, {from, via, to, segment_time, junction_time}) do
+    GenServer.cast(pid, {:delete, from, via, to, segment_time, junction_time})
+  end
+
+  def update(pid, old, new) do
+    delete(pid, old)
+    insert(pid, new)
   end
 
   def get_info(pid) do
@@ -41,6 +50,23 @@ defmodule Aggregator do
       junctions = state.junctions
     end
     {:noreply, %Aggregator{ global: state.global, segments: segments, junctions: junctions } }
+  end
+
+  def handle_cast({:delete, from, via, to, segment_time, junction_time}, state) do
+    timeframe_fn = Global.timeframe_fn(state.global)
+    s_tf = timeframe_fn.(segment_time)
+    j_tf = timeframe_fn.(junction_time)
+
+    segments = HashDict.update!(state.segments, {from, via},
+        fn (d) -> Dict.update!(d, s_tf, &(&1 - 1)) end)
+    
+    if to != nil do
+      junctions = HashDict.update!(state.junctions, {from, via},
+          fn (d) -> Dict.update!(d, j_tf, &(&1 - 1)) end)
+    else
+      junctions = state.junctions
+    end
+    {:noreply, %Aggregator{ global: state.global, segments: segments, junctions: junctions} }
   end
 
   def handle_call(:info, _from, state) do
