@@ -12,11 +12,11 @@ defmodule Oracle do
   end
 
 #From may be nil if the route starts here
-  def vertex_time(_pid, nil, _via, _to, _time) do
+  def vertex_time(_pid, nil, _via, _time) do
     0
   end
 
-  def vertex_time(pid, from, via, _to, time) do
+  def vertex_time(pid, from, via, time) do
     GenServer.call(pid, {:vertex_time, from, via, time})
   end
 

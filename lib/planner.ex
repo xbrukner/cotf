@@ -82,7 +82,7 @@ defmodule Planner do
     toVertex = Dict.get(vertices, to)
     if toVertex == nil or not toVertex.visited do
 #Count both vertex time and edge time
-      vertexTime = Oracle.vertex_time(planner.oracle, vertex.previous, me, to, vertex.time)
+      vertexTime = Oracle.vertex_time(planner.oracle, vertex.previous, me, vertex.time)
       edgeTime = Oracle.edge_time(planner.oracle, me, to, vertex.time)
 
       totalTime = vertexTime + edgeTime + vertex.time

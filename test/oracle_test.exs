@@ -24,8 +24,8 @@ defmodule OracleTest do
     o = Oracle.new(g)
     Oracle.calculate_default(o)
     
-    assert Oracle.vertex_time(o, "A", "B", "C", 4) == 7.627118644067797
-    assert Oracle.vertex_time(o, "A", "B", "C", 5) == 7.627118644067797
+    assert Oracle.vertex_time(o, "A", "B", 4) == 7.627118644067797
+    assert Oracle.vertex_time(o, "A", "B", 5) == 7.627118644067797
   end
 
   test "Zero time for starting vertex" do
@@ -33,7 +33,7 @@ defmodule OracleTest do
     g = %Global{map: m, tf_duration: 60} 
     o = Oracle.new(g)
 
-    assert Oracle.vertex_time(o, nil, "A", "B", 3) == 0
+    assert Oracle.vertex_time(o, nil, "A", 3) == 0
    end 
 
   test "Can insert and delete current" do
@@ -47,8 +47,8 @@ defmodule OracleTest do
 
     assert Oracle.edge_time(o, "A", "B", 0) == 3
     assert Oracle.edge_time(o, "A", "B", 180) == 5
-    assert Oracle.vertex_time(o, "A", "B", "C", 120) == 4
-    assert Oracle.vertex_time(o, "A", "B", "C", 360) == 1
+    assert Oracle.vertex_time(o, "A", "B", 120) == 4
+    assert Oracle.vertex_time(o, "A", "B", 360) == 1
 
     Oracle.reset_current(o)
     assert Oracle.edge_time(o, "A", "B", 0) == 256.90093903679565
