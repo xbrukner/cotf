@@ -30,7 +30,7 @@ defmodule Car do
 
   def handle_call(:calculate_plan, _from, state) do
     if Plan.empty?(state.last_plan) do #Second plan - same route, update times
-      orig_plan = Planner.update_route_time(state.global, state.plan)
+      orig_plan = Plan.updateTimes(state.global, state.plan)
       state = %Car{state | orig_plan: orig_plan }
     end
     state = %Car{state | last_plan: state.plan} #Copy last plan

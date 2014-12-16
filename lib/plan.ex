@@ -31,12 +31,26 @@ defmodule Plan do
     }
   end
 
-  def calculateLength(global, plan) do
+  def calculateLength(%Global{} = global, plan) do
     Enum.reduce(plan.steps, {plan.from, 0}, fn ({to, _vt, _et}, {from, total}) ->
         {length, _type} = RoadMap.length_type(global.map, from, to)
         {to, total + length}
       end)
-    |> elem(1)
+      |> elem(1)
+  end
+
+  def updateTimes(%Global{} = global, plan) do
+    #First is handled differently, because first vertex time is starting time - and that one does not change
+    [ {f_to, f_vt, _f_et} | f_rest] = plan.steps
+    et = f_vt + Oracle.edge_time(global.oracle, plan.from, f_to, f_vt)
+    first = {f_to, f_vt, et}
+
+    {steps, {_to, total} } = Enum.map_reduce(f_rest, {f_to, et}, fn({to, _vt, _et}, {from, total}) ->
+        vt = total + Oracle.vertex_time(global.oracle, from, to, total)
+        et = vt + Oracle.edge_time(global.oracle, from, to, vt)
+        { {to, vt, et}, {to, et} }
+      end)
+    %Plan{from: plan.from, to: plan.to, steps: [first] ++ steps, time: total - f_vt}
   end
 end
 
