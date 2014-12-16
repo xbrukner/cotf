@@ -20,7 +20,7 @@ defmodule CarTest do
     :ok = Car.calculate_plan(c)
     info = Car.get_info(c)
     
-    assert info.plan == %Plan{from: "A", steps: [{"B", 0, 256.90093903679565}], time: 256.90093903679565, to: "B"}
+    assert info.plan == %Plan{from: "A", steps: [{"B", 20, 276.90093903679565}], time: 256.90093903679565, to: "B"}
   end
 
   test "Car can submit the road to Aggregator" do

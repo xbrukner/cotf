@@ -2,6 +2,7 @@ defmodule Planner do
   defstruct map: nil, oracle: nil
 
   defmodule VertexData do
+    #All times are absolute
     defstruct visited: false, time: 0, vertexTime: 0, edgeTime: 0, previous: nil
   end
 
@@ -13,25 +14,25 @@ defmodule Planner do
     %Planner{map: map, oracle: oracle}
   end
 
-  def route(planner, from, to) do
+  def route(planner, from, to, start_time) do
     #Format: vertex -> VertexData
     vertices = HashDict.new()
-    vertices = Dict.put_new(vertices, from, %VertexData{})
+    vertices = Dict.put_new(vertices, from, %VertexData{time: start_time})
 
     #Priority queue only stores values, not tuples with identificator
     #Format: time -> [ vertex ]
     times = HashDict.new()
-    times = Dict.put_new(times, 0, [from])
+    times = Dict.put_new(times, start_time, [from])
 
     #Priority queue, just times in it
     queue = :heaps.new()
-    queue = :heaps.add(0, queue)
+    queue = :heaps.add(start_time, queue)
     
     #Find route by running Dijkstra
     vertices = dijkstra(planner, to, vertices, times, queue)
   
     #Build route plan
-    p = Plan.new(from, to, Dict.get(vertices, to).time)
+    p = Plan.new(from, to, Dict.get(vertices, to).time - start_time)
     plan(p, to, vertices)
   end
 
@@ -91,8 +92,8 @@ defmodule Planner do
         vertices = Dict.put(vertices, to, %VertexData{ 
             visited: false,
             time: totalTime,
-            vertexTime: vertexTime,
-            edgeTime: edgeTime,
+            vertexTime: vertexTime + vertex.time,
+            edgeTime: edgeTime + vertex.time + vertexTime,
             previous: me
           })
         if not Dict.has_key?(times, totalTime) do

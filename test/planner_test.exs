@@ -27,8 +27,8 @@ defmodule PlannerTest do
 
     planner = Planner.new(map, oracle)
     
-    plan = Planner.route(planner, "A", "B")
-    assert plan.steps == [ {"B", 0, 256.90093903679565} ]
+    plan = Planner.route(planner, "A", "B", 10)
+    assert plan.steps == [ {"B", 10, 266.90093903679565} ]
     assert plan.time == 256.90093903679565
   end
   
@@ -40,10 +40,10 @@ defmodule PlannerTest do
 
     planner = Planner.new(map, oracle)
     
-    plan = Planner.route(planner, "A", "H")
+    plan = Planner.route(planner, "A", "H", 0)
     assert plan.steps == [{"G", 0, 171.2672926911971},
-            {"I", 7.627118644067797, 42.816823172799275},
-            {"H", 7.627118644067797, 42.816823172799275}]
+            {"I", 171.2672926911971 + 7.627118644067797, 171.2672926911971 + 7.627118644067797 + 42.816823172799275},
+            {"H", 171.2672926911971 + 7.627118644067797 * 2 + 42.816823172799275, 171.2672926911971 + 7.627118644067797 * 2 + 42.816823172799275 * 2}]
     assert plan.time == 272.15517632493123
   end
 end

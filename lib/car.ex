@@ -35,8 +35,7 @@ defmodule Car do
     end
     state = %Car{state | last_plan: state.plan} #Copy last plan
     
-    #TODO - start_time
-    plan = Planner.route(state.global.planner, state.from, state.to)
+    plan = Planner.route(state.global.planner, state.from, state.to, state.start_time)
     state = %Car{state | plan: plan}
     {:reply, :ok, state}
   end
@@ -47,41 +46,41 @@ defmodule Car do
 
     l_p = state.last_plan
     
-    send_plan(a, 0, p.from, p.steps, 0, l_p.from, l_p.steps )
+    send_plan(a, p.from, p.steps, l_p.from, l_p.steps )
     
     {:reply, :ok, state}
   end
 
 #termination
-  defp send_plan(_a, _time, _from, [], _l_time, _l_from, []) do
+  defp send_plan(_a, _from, [], _l_from, []) do
   end
 
 #Only old plan
-  defp send_plan(a, _time, _from, [], l_time, l_from, [l_next | l_rest]) do
-    {newtime, newfrom, info} = extract_send_info(l_time, l_from, l_next, l_rest)
+  defp send_plan(a, _from, [], l_from, [l_next | l_rest]) do
+    {newfrom, info} = extract_send_info(l_from, l_next, l_rest)
     Aggregator.delete(a, info)
     
-    send_plan(a, 0, nil, [], newtime, newfrom, l_rest)
+    send_plan(a, nil, [], newfrom, l_rest)
   end
 
 #Only new plan
-  defp send_plan(a, time, from, [next | rest], _l_time, _l_from, []) do
-    {newtime, newfrom, info} = extract_send_info(time, from, next, rest)
+  defp send_plan(a, from, [next | rest], _l_from, []) do
+    {newfrom, info} = extract_send_info(from, next, rest)
     Aggregator.insert(a, info)
     
-    send_plan(a, newtime, newfrom, rest, 0, nil, [])
+    send_plan(a, newfrom, rest, nil, [])
   end
 
 #Both plans
-  defp send_plan(a, time, from, [next | rest], l_time, l_from, [l_next | l_rest]) do
-    {newtime, newfrom, info} = extract_send_info(time, from, next, rest)
-    {l_newtime, l_newfrom, l_info} = extract_send_info(l_time, l_from, l_next, l_rest)
+  defp send_plan(a, from, [next | rest], l_from, [l_next | l_rest]) do
+    {newfrom, info} = extract_send_info(from, next, rest)
+    {l_newfrom, l_info} = extract_send_info(l_from, l_next, l_rest)
     Aggregator.update(a, l_info, info)
     
-    send_plan(a, newtime, newfrom, rest, l_newtime, l_newfrom, l_rest)
+    send_plan(a, newfrom, rest, l_newfrom, l_rest)
   end
 
-  defp extract_send_info(time, from, next, rest) do
+  defp extract_send_info(from, next, rest) do
     to = if Enum.empty?(rest) do
       nil
     else
@@ -89,10 +88,8 @@ defmodule Car do
       |> elem(0)
     end
 
-    #TODO - this is not correct ATM since the plan format is wrong
-    t1 = time + elem(next, 1)
-    t2 = t1 + elem(next, 2)
-    {t2, elem(next, 0), {from, elem(next, 0), to, t1, t2} }
+    {via, vertexTime, edgeTime} = next
+    {via, {from, via, to, vertexTime, edgeTime} }
   end
 end
 
