@@ -76,23 +76,23 @@ defmodule Aggregator do
   def handle_call(:calculate, from, state) do
     counter = Counter.new(fn (_) -> GenServer.reply(from, :calculated) end)
     #Get all segments
-    Enum.each state.segments, &spawn_current(:segment, &1, state.global, counter)
+    Enum.each state.segments, &spawn_current_segment(&1, state.global, counter)
 
     #Get all junctions
-    Enum.each state.junctions, &spawn_current(:junction, &1, state.global, counter)
+    Enum.each state.junctions, &spawn_current_junction(&1, state.global, counter)
 
     Counter.all_started(counter)
     {:noreply, state}
   end
 
-  defp spawn_current(type, {{from, to}, dict}, global, counter) do
-    Counter.started(counter)
-    finish_fn = &Oracle.current_delay_result(global.oracle, type, from, to, &1)
-    if type == :junction do
-      Delay.spawn_junction(global, from, to, dict, finish_fn, counter)
-    else
-      Delay.spawn_segment(global, from, to, dict, finish_fn, counter)
-    end
+  defp spawn_current_junction({{from, to}, dict}, global, counter) do
+    Counter.spawn counter, fn -> Delay.junction(global, from, to, dict) end,
+        &Oracle.current_delay_result(global.oracle, :junction, from, to, &1)
+  end
+
+  defp spawn_current_segment({{from, to}, dict}, global, counter) do
+    Counter.spawn counter, fn -> Delay.segment(global, from, to, dict) end,
+        &Oracle.current_delay_result(global.oracle, :segment, from, to, &1) 
   end
 end
 

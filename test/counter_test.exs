@@ -39,4 +39,19 @@ defmodule CounterTest do
     Counter.finished(c)
     assert_receive {:count, 4}
   end
+
+  test "Counter can spawn" do
+    me = self()
+    
+    c = Counter.new(fn(count) -> send me, {:count, count} end)
+    Counter.spawn(c, fn -> send me, :called end)
+    
+    assert_receive :called
+
+    Counter.spawn(c, fn -> :result end, fn (v) -> send me, v end)
+    assert_receive :result
+
+    Counter.all_started(c)
+    assert_receive {:count, 2}
+  end
 end

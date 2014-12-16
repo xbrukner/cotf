@@ -1,6 +1,7 @@
 defmodule Delay do
 #Junctions
   def junction(global, from, via, cars) do
+    cars = Enum.filter cars, fn {_, v} -> v > 0 end
     delayfn = &(SingleDelay.junction(global, &1, from, via))
     durations = Enum.map(cars, fn({tf, cars}) -> {tf, delayfn.(cars)} end)
 
@@ -18,6 +19,7 @@ defmodule Delay do
 
 #Segments
   def segment(global, from, to, cars) do
+    cars = Enum.filter cars, fn {_, v} -> v > 0 end
     calcfn = SingleDelay.segment_calc_fn(global, from, to)
     speeds_times = Enum.map(cars, fn({tf, cars}) -> {tf, {cars, calcfn.(cars)} } end)
     {length, _} = RoadMap.length_type(global.map, from, to)
@@ -97,24 +99,5 @@ defmodule Delay do
     distance_from_speeds(r_speeds, time_diff - time, distance + length)
   end
 
-
-#Spawning
-  def spawn_junction(global, from, via, cars, result_fn, counter) do
-    spawn fn ->
-      cars = Enum.filter cars, fn {_, v} -> v > 0 end
-      junction(global, from, via, cars)
-        |> result_fn.()
-      Counter.finished(counter)
-    end
-  end
-
-  def spawn_segment(global, from, to, cars, result_fn, counter) do
-    spawn fn ->
-      cars = Enum.filter cars, fn {_, v} -> v > 0 end
-      segment(global, from, to, cars)
-        |> result_fn.()
-      Counter.finished(counter)
-    end
-  end
 end
 

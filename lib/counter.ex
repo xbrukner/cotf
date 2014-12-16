@@ -38,5 +38,25 @@ defmodule Counter do
       state.callback.(state.started)
     end
   end
+
+  def spawn(pid, callback)
+    when is_function(callback) do
+    started(pid)
+    spawn fn ->
+      callback.()
+      finished(pid)
+    end
+  end
+
+  def spawn(pid, callback, result_callback)
+    when is_function(callback) and
+        is_function(result_callback) do
+    started(pid)
+    spawn fn ->
+      callback.()
+      |> result_callback.()
+      finished(pid)
+    end
+  end
 end
 

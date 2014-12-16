@@ -116,13 +116,11 @@ defmodule Oracle do
   defp spawn_default({from, to, _length, _type}, global, counter) do
     pid = self()
 #Create calls to junctions
-    Counter.started(counter)
-    junction_fn = &default_delay_result(pid, :junction, from, to, &1)
-    Delay.spawn_junction(global, from, to, %{0 => 1}, junction_fn, counter)
+    Counter.spawn counter, fn -> Delay.junction(global, from, to, %{0 => 1}) end,
+          &default_delay_result(pid, :junction, from, to, &1)
 #Create calls to segments
-    Counter.started(counter)
-    segment_fn = &default_delay_result(pid, :segment, from, to, &1)
-    Delay.spawn_segment(global, from, to, %{0 => 1}, segment_fn, counter)
+    Counter.spawn counter, fn -> Delay.segment(global, from, to, %{0 => 1}) end,
+          &default_delay_result(pid, :segment, from, to, &1)
   end
 end
 
