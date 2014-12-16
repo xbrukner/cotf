@@ -20,7 +20,7 @@ defmodule Delay do
   def segment(global, from, to, cars) do
     calcfn = SingleDelay.segment_calc_fn(global, from, to)
     speeds_times = Enum.map(cars, fn({tf, cars}) -> {tf, {cars, calcfn.(cars)} } end)
-    length = RoadMap.length(global.map, from, to)
+    {length, _} = RoadMap.length_type(global.map, from, to)
 
     #Constants
     car_length = 0.0045 #km

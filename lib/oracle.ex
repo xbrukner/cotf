@@ -113,7 +113,7 @@ defmodule Oracle do
     {:reply, :ok, %Oracle{ state | current_segment: HashDict.new(), current_junction: HashDict.new()}}
   end
 
-  defp spawn_default({from, to, _}, global, counter) do
+  defp spawn_default({from, to, _length, _type}, global, counter) do
     pid = self()
 #Create calls to junctions
     Counter.started(counter)

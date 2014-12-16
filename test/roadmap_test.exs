@@ -16,7 +16,7 @@ defmodule RoadMapTest do
     assert RoadMap.edges(m, "D") |>
       Enum.count == 5
 
-    assert RoadMap.length(m, "A", "B") == 6
+    assert RoadMap.length_type(m, "A", "B") == {6, 1}
   end
 end
 

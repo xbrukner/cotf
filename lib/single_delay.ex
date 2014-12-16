@@ -1,14 +1,11 @@
 defmodule SingleDelay do
 
-  def segment_calc_fn(global, from, to) do
-    map = global.map
-
-    length = RoadMap.length(map, from, to)
-    type = 1 #TODO
+  def segment_calc_fn(%Global{} = global, from, to) do
+    {length, type} = RoadMap.length_type(global.map, from, to)
     &(segment_calculation(global.tf_duration, &1, length, type))
   end
 
-  def segment(global, number_of_cars, from, to) do
+  def segment(%Global{} = global, number_of_cars, from, to) do
     calc_fn = segment_calc_fn(global, from, to)
     {_speed, duration} = calc_fn.(number_of_cars)
     duration
@@ -46,12 +43,12 @@ defmodule SingleDelay do
     {speed, time_in_hours * 3600}
   end
 
-  def junction_calc_fn(global, _from, _via) do
-    type = 1 #TODO
+  def junction_calc_fn(%Global{} = global, _from, via) do
+    type = RoadMap.vertex_type(global.map, via)
     &(junction_calculation(global.tf_duration, &1, type))
   end
 
-  def junction(global, number_of_cars, from, via) do
+  def junction(%Global{} = global, number_of_cars, from, via) do
     calc_fn = junction_calc_fn(global, from, via)
     calc_fn.(number_of_cars)
   end

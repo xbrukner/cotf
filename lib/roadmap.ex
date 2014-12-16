@@ -18,21 +18,23 @@ defmodule RoadMap do
 
   defp parser([v | rest], state, :vertices) do
     #TODO - coordinates in the future
-    :digraph.add_vertex(state.map, v) 
+    label = 1 #Type
+    :digraph.add_vertex(state.map, v, label) 
     parser(rest, state, :vertices)
   end
 
 #From vertices to edges
-  defp parser(["" | rest], state, :edges) do
+  defp parser(["" | _rest], state, :edges) do
     state
   end
 
   defp parser([e | rest], state, :edges) do
     data = String.split(e, " ")
     [from, to, length] = Enum.take(data, 3)
-    :digraph.add_edge(state.map, from, to, length)
+    label = {length, 1} #1 = Type
+    :digraph.add_edge(state.map, from, to, label)
     if Enum.count(data) == 3 do #Two way
-      :digraph.add_edge(state.map, to, from, length)
+      :digraph.add_edge(state.map, to, from, label)
     end
     parser(rest, state, :edges)
   end
@@ -41,28 +43,33 @@ defmodule RoadMap do
     state
   end
 
-  def vertices(map) do
+  def vertices(%RoadMap{} = map) do
     :digraph.vertices(map.map)
   end
 
-  def edges(map) do
+  def edges(%RoadMap{} = map) do
     :digraph.edges(map.map)
   end
 
-  def edges(map, from) do
+  def edges(%RoadMap{} = map, from) do
     :digraph.out_edges(map.map, from)
       |> Enum.map(fn e -> 
-          {_edge, from, to, length} = :digraph.edge(map.map, e) 
-          {from, to, length}
+          {_edge, from, to, {length, type}} = :digraph.edge(map.map, e) 
+          {from, to, length, type}
         end)
   end
 
-  def length(map, from, to) do
-    RoadMap.edges(map, from) #Outgoing
-      |> Enum.find(fn ({_f, t, _l}) -> t == to end) #Find this one
-      |> elem(2) #Extract length
-      |> Float.parse #Parse to {float, rest}
+  def length_type(%RoadMap{} = map, from, to) do
+    {_from, _to, length, type} = RoadMap.edges(map, from) #Outgoing
+      |> Enum.find(fn ({_f, t, _l, _t}) -> t == to end) #Find this one
+    length = Float.parse(length) #Parse to {float, rest}
       |> elem(0) #Choose float
+    {length, type}
+  end
+
+  def vertex_type(%RoadMap{} = map, vertex) do
+    :digraph.vertex(map.map, vertex)
+      |> elem(1)
   end
 end
 

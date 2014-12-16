@@ -78,7 +78,7 @@ defmodule Planner do
     {vertices, times, queue}
   end
 
-  defp handleNeighbours(planner, vertex, [{me, to, _roadDistance} | rest], vertices, times, queue) do
+  defp handleNeighbours(planner, vertex, [{me, to, _roadDistance, _type} | rest], vertices, times, queue) do
     toVertex = Dict.get(vertices, to)
     if toVertex == nil or not toVertex.visited do
 #Count both vertex time and edge time
