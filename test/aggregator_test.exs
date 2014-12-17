@@ -49,7 +49,7 @@ defmodule AggregatorTest do
     assert Oracle.edge_time(g.oracle, "A", "B", 0) == 257.90812131813016
   end
 
- test "Aggregator can insert, update and delete" do
+  test "Aggregator can insert, update and delete" do
     m = RoadMap.new("sample_map.txt")
     g = %Global{ map: m, tf_duration: 10}
     g = %{ g | planner: Planner.new(g), oracle: Oracle.new(g) }
@@ -82,4 +82,18 @@ defmodule AggregatorTest do
     assert Dict.get(info.segments, {"A", "B"}) == %{0 => 0, 1 => 2}
   end
 
+  test "Aggregator can compare" do
+    m = RoadMap.new("sample_map.txt")
+    g = %Global{ map: m, tf_duration: 10}
+    g = %{ g | planner: Planner.new(g), oracle: Oracle.new(g) }
+
+    a = Aggregator.new(g)
+  
+    Aggregator.insert(a, {"A", "B", "C", 5, 10})
+    info = Aggregator.get_info(a)
+    assert Aggregator.compare(a, info) == true 
+
+    Aggregator.insert(a, {"A", "B", "C", 5, 10})
+    assert Aggregator.compare(a, info) == false
+  end
 end

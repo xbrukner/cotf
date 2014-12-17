@@ -28,6 +28,10 @@ defmodule Aggregator do
      :calculated = GenServer.call(pid, :calculate)
   end
 
+  def compare(pid, %Aggregator{} = previous) do
+    GenServer.call(pid, {:compare, previous})
+  end
+  
 #GenServer
   def init(g) do
     {:ok, %Aggregator{ global: g, segments: HashDict.new(), junctions: HashDict.new() } }
@@ -85,6 +89,10 @@ defmodule Aggregator do
     {:noreply, state}
   end
 
+  def handle_call({:compare, %Aggregator{ segments: l_segments, junctions: l_junctions}}, _from, state) do
+    {:reply, l_segments == state.segments and l_junctions == state.junctions, state}
+  end
+
   defp spawn_current_junction({{from, to}, dict}, global, counter) do
     Counter.spawn counter, fn -> Delay.junction(global, from, to, dict) end,
         &Oracle.current_delay_result(global.oracle, :junction, from, to, &1)
@@ -94,5 +102,6 @@ defmodule Aggregator do
     Counter.spawn counter, fn -> Delay.segment(global, from, to, dict) end,
         &Oracle.current_delay_result(global.oracle, :segment, from, to, &1) 
   end
+
 end
 
