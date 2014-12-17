@@ -1,15 +1,17 @@
 defmodule RoadMap do
-  defstruct map: nil
-
-
+  defstruct map: nil, start_end_vertices: nil
 
   def new(filename) do
     File.read!(filename)
       |> parser
   end
 
+  def get_start_end_vertices(%RoadMap{} = map) do
+    map.start_end_vertices
+  end
+
   defp parser(data) do
-    parser(String.split(data, "\n"), %RoadMap{map: :digraph.new}, :vertices)
+    parser(String.split(data, "\n"), %RoadMap{map: :digraph.new, start_end_vertices: HashDict.new}, :vertices)
   end
 
   defp parser(["" | rest], state, :vertices) do
@@ -19,8 +21,9 @@ defmodule RoadMap do
   defp parser([v | rest], state, :vertices) do
     #TODO - coordinates in the future
     label = 1 #Type
-    :digraph.add_vertex(state.map, v, label) 
-    parser(rest, state, :vertices)
+    :digraph.add_vertex(state.map, v, label)
+    newstate = %RoadMap{ state | start_end_vertices: Dict.put_new(state.start_end_vertices, Dict.size(state.start_end_vertices), v) }
+    parser(rest, newstate, :vertices)
   end
 
 #From vertices to edges
