@@ -54,4 +54,19 @@ defmodule CounterTest do
     Counter.all_started(c)
     assert_receive {:count, 2}
   end
+
+  test "Waiter works" do
+    me = self()
+    c = Counter.Waiter.new()
+    Counter.Waiter.spawn(c, fn -> send me, :called end)
+    assert_receive :called
+
+    Counter.Waiter.all_started(c)
+
+    spawn fn -> 
+      count = Counter.Waiter.wait_for(c)
+      send me, {:finished, count}
+    end
+    assert_receive {:finished, 1}
+  end
 end
