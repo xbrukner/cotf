@@ -63,4 +63,18 @@ defmodule CarTest do
     assert ai1.junctions == ai2.junctions
     assert ai2.segments == ai2.segments
   end
+
+  test "Car can return result string" do
+    m = RoadMap.new("sample_map.txt")
+    g = %Global{ map: m, tf_duration: 60}
+    g = %Global{ g | oracle: Oracle.new(g), aggregator: Aggregator.new(g) }
+    g = %{ g | planner: Planner.new(g)}
+    Oracle.calculate_default(g.oracle)
+
+    c = Car.new("A", 20, "B", g)
+
+    :ok = Car.calculate_plan(c)
+    :ok = Car.calculate_plan(c)
+    assert Car.result(c) == "A,B,20,256.90093903679565,6.0,256.90093903679565,6.0"
+ end
 end

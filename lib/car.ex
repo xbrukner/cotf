@@ -19,6 +19,10 @@ defmodule Car do
     GenServer.call(pid, :send_plan)
   end
 
+  def result(pid) do
+    GenServer.call(pid, :result)
+  end
+
 # GenServer
   def init({from, start_time, to, global}) do
     {:ok, %Car{from: from, start_time: start_time, to: to, global: global, plan: Plan.empty}}
@@ -28,9 +32,16 @@ defmodule Car do
     {:reply, state, state}
   end
 
+  def handle_call(:result, _from, state) do
+    {:reply, "#{state.from},#{state.to},#{state.start_time}," <>
+      "#{state.orig_plan.time}," <> to_string(Plan.calculateLength(state.global, state.orig_plan)) <>
+      ",#{state.plan.time}," <> to_string(Plan.calculateLength(state.global, state.plan)),
+      state}
+  end
+
   def handle_call(:calculate_plan, _from, state) do
     if Plan.empty?(state.last_plan) do #Second plan - same route, update times
-      orig_plan = Plan.updateTimes(state.global, state.plan)
+      orig_plan = state.plan
       state = %Car{state | orig_plan: orig_plan }
     end
     state = %Car{state | last_plan: state.plan} #Copy last plan
