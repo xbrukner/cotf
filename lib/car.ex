@@ -1,5 +1,5 @@
 defmodule Car do
-  defstruct from: nil, start_time: 0, to: nil, orig_plan: nil, last_plan: nil, plan: nil, global: nil
+  defstruct from: nil, start_time: 0, to: nil, orig_plan: nil, last_plan: nil, plan: nil, global: nil, fixpoint_plan_type: nil
   use GenServer
 
   def new(from, start_time, to, global) do
@@ -22,6 +22,11 @@ defmodule Car do
   def result(pid) do
     GenServer.call(pid, :result)
   end
+  
+  def fixpoint_plan(pid, global, type) do
+    #After this, no more iterations!
+    GenServer.call(pid, {:fixpoint_plan, global, type})
+  end
 
 # GenServer
   def init({from, start_time, to, global}) do
@@ -40,7 +45,7 @@ defmodule Car do
   end
 
   def handle_call(:calculate_plan, _from, state) do
-    if Plan.empty?(state.last_plan) do #Second plan - same route, update times
+    if Plan.empty?(state.last_plan) do #Second plan - save original plan
       orig_plan = state.plan
       state = %Car{state | orig_plan: orig_plan }
     end
@@ -60,6 +65,30 @@ defmodule Car do
     send_plan(a, p.from, p.steps, l_p.from, l_p.steps )
     
     {:reply, :ok, state}
+  end
+
+  def handle_call({:fixpoint_plan, global, type}, _from, state) do
+    plan = if type == :original do
+      state.orig_plan
+    else
+      state.plan
+    end
+
+    last_plan = if state.fixpoint_plan_type == type do
+      plan
+    else
+      Plan.empty
+    end
+
+    new_plan = Plan.updateTimes(global, plan)
+    send_plan(global.aggregator, new_plan.from, new_plan.steps, last_plan.from, last_plan.steps)
+
+    newstate = if type == :original do
+      %Car{ state | orig_plan: new_plan, fixpoint_plan_type: type}
+    else
+      %Car{ state | plan: new_plan, fixpoint_plan_type: type}
+    end
+    {:reply, :ok, newstate}
   end
 
 #termination
