@@ -20,7 +20,8 @@ defmodule CarTest do
     :ok = Car.calculate_plan(c)
     info = Car.get_info(c)
     
-    assert info.plan == %Plan{from: "A", steps: [{"B", 20, 276.90093903679565}], time: 256.90093903679565, to: "B"}
+    assert info.plan == %Plan{from: "A", steps: [{"B", 20, 277.49727688893444}],
+            time: 257.49727688893444, to: "B"}
   end
 
   test "Car can submit the road to Aggregator" do
@@ -36,10 +37,10 @@ defmodule CarTest do
     :ok = Car.send_plan(c)
     
     info = Aggregator.get_info(g.aggregator)
-    assert Dict.get(info.junctions, {"A", "G"}) == %{1909 => 1}
-    assert Dict.get(info.junctions, {"G", "I"}) == %{2468 => 1}
-    assert Dict.get(info.segments, {"I", "H"}) == %{2549 => 1}
-    assert Dict.get(info.segments, {"G", "I"}) == %{1990 => 1}
+    assert Dict.get(info.junctions, {"A", "G"}) == %{1911 => 1}
+    assert Dict.get(info.junctions, {"G", "I"}) == %{2471 => 1}
+    assert Dict.get(info.segments, {"I", "H"}) == %{2552 => 1}
+    assert Dict.get(info.segments, {"G", "I"}) == %{1992 => 1}
     assert Dict.get(info.segments, {"A", "G"}) == %{0 => 1}
   end
 
@@ -75,6 +76,6 @@ defmodule CarTest do
 
     :ok = Car.calculate_plan(c)
     :ok = Car.calculate_plan(c)
-    assert Car.result(c) == "A,B,20,256.90093903679565,6.0,256.90093903679565,6.0"
+    assert Car.result(c) == "A,B,20,257.49727688893444,6.0,257.49727688893444,6.0"
  end
 end

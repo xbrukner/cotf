@@ -14,8 +14,8 @@ defmodule OracleTest do
     o = Oracle.new(g)
     Oracle.calculate_default(o)
 
-    assert Oracle.edge_time(o, "A", "B", 4) == 256.90093903679565
-    assert Oracle.edge_time(o, "A", "B", 0) == 256.90093903679565
+    assert Oracle.edge_time(o, "A", "B", 4) == 257.49727688893444
+    assert Oracle.edge_time(o, "A", "B", 0) == 257.49727688893444
   end
 
   test "Can give time for junction" do
@@ -51,7 +51,7 @@ defmodule OracleTest do
     assert Oracle.vertex_time(o, "A", "B", 360) == 1
 
     Oracle.reset_current(o)
-    assert Oracle.edge_time(o, "A", "B", 0) == 256.90093903679565
+    assert Oracle.edge_time(o, "A", "B", 0) == 257.49727688893444
     
   end
 end

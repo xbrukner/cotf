@@ -46,7 +46,7 @@ defmodule AggregatorTest do
 
     Aggregator.calculate_delay(a)
     assert Oracle.vertex_time(g.oracle, "A", "B", 60) == 7.894736842105264
-    assert Oracle.edge_time(g.oracle, "A", "B", 0) == 257.90812131813016
+    assert Oracle.edge_time(g.oracle, "A", "B", 0) == 259.6982679546131
   end
 
   test "Aggregator can insert, update and delete" do
