@@ -8,11 +8,11 @@ defmodule Aggregator do
   end
 
   def insert(pid, {from, via, to, segment_time, junction_time}) do
-    GenServer.cast(pid, {:insert, from, via, to, segment_time, junction_time})
+    GenServer.call(pid, {:insert, from, via, to, segment_time, junction_time}, :infinity)
   end
 
   def delete(pid, {from, via, to, segment_time, junction_time}) do
-    GenServer.cast(pid, {:delete, from, via, to, segment_time, junction_time})
+    GenServer.call(pid, {:delete, from, via, to, segment_time, junction_time}, :infinity)
   end
 
   def update(pid, old, new) do
@@ -21,15 +21,15 @@ defmodule Aggregator do
   end
 
   def get_info(pid) do
-    GenServer.call(pid, :info)
+    GenServer.call(pid, :info, :infinity)
   end
 
   def calculate_delay(pid) do
-     :calculated = GenServer.call(pid, :calculate)
+     :calculated = GenServer.call(pid, :calculate, :infinity)
   end
 
   def compare(pid, %Aggregator{} = previous) do
-    GenServer.call(pid, {:compare, previous})
+    GenServer.call(pid, {:compare, previous}, :infinity)
   end
 
   def write_results(map, prefix, %Aggregator{} = original, %Aggregator{} = latest) do
@@ -72,7 +72,7 @@ defmodule Aggregator do
   end
 
   defp write_single_segment({from, to, length, type}, file, max_tf, original, latest) do
-    IO.write file, "#{from},#{to},#{length},#{type},"
+    IO.write file, "#{inspect from},#{inspect to},#{length},#{type},"
     write_cars file, max_tf, Dict.get(original, {from, to})
     IO.write file, ","
     write_cars file, max_tf, Dict.get(latest, {from, to})
@@ -81,7 +81,7 @@ defmodule Aggregator do
 
   defp write_single_junction({from, via, _length, _type}, map, file, max_tf, original, latest) do
     type = RoadMap.vertex_type(map, via)
-    IO.write file, "#{from},#{via},#{type},"
+    IO.write file, "#{inspect from},#{inspect via},#{type},"
     write_cars file, max_tf, Dict.get(original, {from, via})
     IO.write file, ","
     write_cars file, max_tf, Dict.get(latest, {from, via})
@@ -107,7 +107,7 @@ defmodule Aggregator do
     {:ok, %Aggregator{ global: g, segments: HashDict.new(), junctions: HashDict.new() } }
   end
 
-  def handle_cast({:insert, from, via, to, segment_time, junction_time}, state) do
+  def handle_call({:insert, from, via, to, segment_time, junction_time}, _from, state) do
     timeframe_fn = Global.timeframe_fn(state.global)
     s_tf = timeframe_fn.(segment_time)
     j_tf = timeframe_fn.(junction_time)
@@ -123,10 +123,10 @@ defmodule Aggregator do
     else
       junctions = state.junctions
     end
-    {:noreply, %Aggregator{ global: state.global, segments: segments, junctions: junctions } }
+    {:reply, :ok, %Aggregator{ global: state.global, segments: segments, junctions: junctions } }
   end
 
-  def handle_cast({:delete, from, via, to, segment_time, junction_time}, state) do
+  def handle_call({:delete, from, via, to, segment_time, junction_time}, _from, state) do
     timeframe_fn = Global.timeframe_fn(state.global)
     s_tf = timeframe_fn.(segment_time)
     j_tf = timeframe_fn.(junction_time)
@@ -140,7 +140,7 @@ defmodule Aggregator do
     else
       junctions = state.junctions
     end
-    {:noreply, %Aggregator{ global: state.global, segments: segments, junctions: junctions} }
+    {:reply, :ok, %Aggregator{ global: state.global, segments: segments, junctions: junctions} }
   end
 
   def handle_call(:info, _from, state) do

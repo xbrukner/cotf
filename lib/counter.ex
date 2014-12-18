@@ -20,11 +20,11 @@ defmodule Counter do
     end
 
     def wait_for({pid_w, _pid_c}) do
-      GenServer.call(pid_w, :wait_for)
+      GenServer.call(pid_w, :wait_for, :infinity)
     end
 
     defp finished(pid_w, count) do
-      GenServer.call(pid_w, {:finished, count})
+      GenServer.call(pid_w, {:finished, count}, :infinity)
     end
 
 #GenServer
@@ -78,7 +78,7 @@ defmodule Counter do
   end
 
   def stop_fn(pid, state) do
-    spawn fn ->
+    spawn_link fn ->
       :ok = Agent.stop(pid)
       state.callback.(state.started)
     end
@@ -87,7 +87,7 @@ defmodule Counter do
   def spawn(pid, callback)
     when is_function(callback) do
     started(pid)
-    spawn fn ->
+    spawn_link fn ->
       callback.()
       finished(pid)
     end
@@ -97,7 +97,7 @@ defmodule Counter do
     when is_function(callback) and
         is_function(result_callback) do
     started(pid)
-    spawn fn ->
+    spawn_link fn ->
       callback.()
       |> result_callback.()
       finished(pid)

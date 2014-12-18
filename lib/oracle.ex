@@ -8,7 +8,7 @@ defmodule Oracle do
   end
 
   def edge_time(pid, from, to, time) do
-    GenServer.call(pid, {:edge_time, from, to, time})
+    GenServer.call(pid, {:edge_time, from, to, time}, :infinity)
   end
 
 #From may be nil if the route starts here
@@ -17,7 +17,7 @@ defmodule Oracle do
   end
 
   def vertex_time(pid, from, via, time) do
-    GenServer.call(pid, {:vertex_time, from, via, time})
+    GenServer.call(pid, {:vertex_time, from, via, time}, :infinity)
   end
 
   def calculate_default(pid) do
@@ -25,15 +25,15 @@ defmodule Oracle do
   end
 
   def default_delay_result(pid, type, from, to, estimation) do
-    GenServer.call(pid, {:default, type, from, to, Dict.fetch!(estimation, 0)})
+    GenServer.call(pid, {:default, type, from, to, Dict.fetch!(estimation, 0)}, :infinity)
   end
 
   def reset_current(pid) do
-    GenServer.call(pid, :reset_current)
+    GenServer.call(pid, :reset_current, :infinity)
   end
 
   def current_delay_result(pid, type, from, to, dict) do
-    GenServer.call(pid, {:current, type, from, to, dict})
+    GenServer.call(pid, {:current, type, from, to, dict}, :infinity)
   end
 
 #GenServer

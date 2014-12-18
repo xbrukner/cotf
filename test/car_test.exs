@@ -76,6 +76,6 @@ defmodule CarTest do
 
     :ok = Car.calculate_plan(c)
     :ok = Car.calculate_plan(c)
-    assert Car.result(c) == "A,B,20,257.49727688893444,6.0,257.49727688893444,6.0"
+    assert Car.result(c) == "\"A\",\"B\",20,257.49727688893444,6.0,257.49727688893444,6.0"
  end
 end

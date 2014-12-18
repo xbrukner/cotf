@@ -8,24 +8,24 @@ defmodule Car do
   end
 
   def get_info(pid) do
-    GenServer.call(pid, :info)
+    GenServer.call(pid, :info, :infinity)
   end
 
   def calculate_plan(pid) do
-    GenServer.call(pid, :calculate_plan)
+    GenServer.call(pid, :calculate_plan, :infinity)
   end
 
   def send_plan(pid) do
-    GenServer.call(pid, :send_plan)
+    GenServer.call(pid, :send_plan, :infinity)
   end
 
   def result(pid) do
-    GenServer.call(pid, :result)
+    GenServer.call(pid, :result, :infinity)
   end
   
   def fixpoint_plan(pid, global, type) do
     #After this, no more iterations!
-    GenServer.call(pid, {:fixpoint_plan, global, type})
+    GenServer.call(pid, {:fixpoint_plan, global, type}, :infinity)
   end
 
 # GenServer
@@ -38,7 +38,7 @@ defmodule Car do
   end
 
   def handle_call(:result, _from, state) do
-    {:reply, "#{state.from},#{state.to},#{state.start_time}," <>
+    {:reply, "#{inspect state.from},#{inspect state.to},#{state.start_time}," <>
       "#{state.orig_plan.time}," <> to_string(Plan.calculateLength(state.global, state.orig_plan)) <>
       ",#{state.plan.time}," <> to_string(Plan.calculateLength(state.global, state.plan)),
       state}
