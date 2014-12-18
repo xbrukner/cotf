@@ -3,17 +3,6 @@ defmodule Aggregator do
   use GenServer
 
   def new(%Global{} = g) do
-    #Prepare partition fn
-    vertices = RoadMap.vertices(g.map)
-    mapping = Enum.reduce(vertices, HashDict.new(), fn (v, acc) -> Dict.put_new(acc, v, rem(Dict.size(acc), 50) ) end)
-    
-    part = fn {_, via, _, _, _} ->
-      Dict.fetch!(mapping, via)
-    end
-
-    Partitioner.new(__MODULE__, g, 50, part)
-  end
-  def new(%Global{} = g, false) do
     {:ok, pid} = GenServer.start_link(__MODULE__, g)
     pid
   end
@@ -22,16 +11,10 @@ defmodule Aggregator do
     when is_pid(pid) do
     GenServer.cast(pid, {:insert, from, via, to, segment_time, junction_time})
   end
-  def insert(pids, param) do
-    Partitioner.partition(pids, :cast, param, fn params -> Tuple.insert_at(params, 0, :insert) end)
-  end
 
   def delete(pid, {from, via, to, segment_time, junction_time})
     when is_pid(pid) do
     GenServer.cast(pid, {:delete, from, via, to, segment_time, junction_time})
-  end
-  def delete(pids, param) do
-    Partitioner.partition(pids, :cast, param, fn params -> Tuple.insert_at(params, 0, :delete) end)
   end
 
   def update(pid, old, new) do
@@ -43,34 +26,15 @@ defmodule Aggregator do
     when is_pid(pid) do
     GenServer.call(pid, :info, :infinity)
   end
-  def get_info(pids) do
-    Partitioner.broadcast_ordered_aggregation(pids, :call, :info, fn v -> v end, 
-        fn (%Aggregator{global: g1, segments: s1, junctions: j1}, %Aggregator{global: _g, segments: s2, junctions: j2}) -> %Aggregator{global: g1, segments: Dict.merge(s1, s2), junctions: Dict.merge(j1, j2)} end )
-  end
 
   def calculate_delay(pid)
     when is_pid(pid) do
      :calculated = GenServer.call(pid, :calculate, :infinity)
   end
 
-  def calculate_delay(pids) do
-    Partitioner.first(pids, :call, :reset_oracle, fn v -> v end)
-    Partitioner.broadcast_ordered(pids, :call, :calculate, fn v -> v end)
-  end
-
   def compare(pid, %Aggregator{} = previous)
     when is_pid(pid) do
     GenServer.call(pid, {:compare, previous}, :infinity)
-  end
-
-  def compare(pids, %Aggregator{} = previous) do
-    info2 = get_info(pids)
-
-    s = previous.segments == info2.segments
-    j = previous.junctions == info2.junctions
-    IO.inspect {s, j}
-    s and j
-#Partitioner.per_pid_aggregation(pids, :call, previous, fn v -> {:compare, v} end, fn (a, b) -> a and b end)
   end
 
   def write_results(map, prefix, %Aggregator{} = original, %Aggregator{} = latest) do
@@ -188,11 +152,8 @@ defmodule Aggregator do
     {:reply, state, state}
   end
 
-  def handle_call(:reset_oracle, _from, state) do
-    {:reply, Oracle.reset_current(state.global.oracle), state}
-  end
-
   def handle_call(:calculate, from, state) do
+    {:reply, Oracle.reset_current(state.global.oracle), state}
     counter = Counter.new(fn (_) -> GenServer.reply(from, :calculated) end)
     #Get all segments
     chunk(state.segments, 50, &spawn_current_segment(&1, state.global, counter))
