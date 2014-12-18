@@ -25,7 +25,7 @@ defmodule Oracle do
   end
 
   def default_delay_result(pid, type, from, to, estimation) do
-    GenServer.call(pid, {:default, type, from, to, Dict.fetch!(estimation, 0)}, :infinity)
+    GenServer.cast(pid, {:default, type, from, to, Dict.fetch!(estimation, 0)})
   end
 
   def reset_current(pid) do
@@ -33,7 +33,7 @@ defmodule Oracle do
   end
 
   def current_delay_result(pid, type, from, to, dict) do
-    GenServer.call(pid, {:current, type, from, to, dict}, :infinity)
+    GenServer.cast(pid, {:current, type, from, to, dict})
   end
 
 #GenServer
@@ -89,24 +89,24 @@ defmodule Oracle do
     {:noreply, state}
   end
 
-  def handle_call({:default, :segment, from, to, time}, _from, state) do
+  def handle_cast({:default, :segment, from, to, time}, state) do
     segments = Dict.put_new(state.default_segment, {from, to}, time)
-    {:reply, :ok, %Oracle{ state | default_segment: segments} }
+    {:noreply, %Oracle{ state | default_segment: segments} }
   end
 
-  def handle_call({:default, :junction, from, via, time}, _from, state) do
+  def handle_cast({:default, :junction, from, via, time}, state) do
     junctions = Dict.put_new(state.default_junction, {from, via}, time)
-    {:reply, :ok, %Oracle{ state | default_junction: junctions} }
+    {:noreply, %Oracle{ state | default_junction: junctions} }
   end
 
-  def handle_call({:current, :segment, from, to, dict}, _from, state) do
+  def handle_cast({:current, :segment, from, to, dict}, state) do
     segments = Dict.put_new(state.current_segment, {from, to}, dict)
-    {:reply, :ok, %Oracle{ state | current_segment: segments} }
+    {:noreply, %Oracle{ state | current_segment: segments} }
   end
 
-  def handle_call({:current, :junction, from, via, dict}, _from, state) do
+  def handle_cast({:current, :junction, from, via, dict}, state) do
     junctions = Dict.put_new(state.current_junction, {from, via}, dict)
-    {:reply, :ok, %Oracle{ state | current_junction: junctions} }
+    {:noreply, %Oracle{ state | current_junction: junctions} }
   end  
 
   def handle_call(:reset_current, _from, state) do

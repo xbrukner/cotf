@@ -8,11 +8,11 @@ defmodule Aggregator do
   end
 
   def insert(pid, {from, via, to, segment_time, junction_time}) do
-    GenServer.call(pid, {:insert, from, via, to, segment_time, junction_time}, :infinity)
+    GenServer.cast(pid, {:insert, from, via, to, segment_time, junction_time})
   end
 
   def delete(pid, {from, via, to, segment_time, junction_time}) do
-    GenServer.call(pid, {:delete, from, via, to, segment_time, junction_time}, :infinity)
+    GenServer.cast(pid, {:delete, from, via, to, segment_time, junction_time})
   end
 
   def update(pid, old, new) do
@@ -107,7 +107,7 @@ defmodule Aggregator do
     {:ok, %Aggregator{ global: g, segments: HashDict.new(), junctions: HashDict.new() } }
   end
 
-  def handle_call({:insert, from, via, to, segment_time, junction_time}, _from, state) do
+  def handle_cast({:insert, from, via, to, segment_time, junction_time}, state) do
     timeframe_fn = Global.timeframe_fn(state.global)
     s_tf = timeframe_fn.(segment_time)
     j_tf = timeframe_fn.(junction_time)
@@ -123,10 +123,10 @@ defmodule Aggregator do
     else
       junctions = state.junctions
     end
-    {:reply, :ok, %Aggregator{ global: state.global, segments: segments, junctions: junctions } }
+    {:noreply, %Aggregator{ global: state.global, segments: segments, junctions: junctions } }
   end
 
-  def handle_call({:delete, from, via, to, segment_time, junction_time}, _from, state) do
+  def handle_cast({:delete, from, via, to, segment_time, junction_time}, state) do
     timeframe_fn = Global.timeframe_fn(state.global)
     s_tf = timeframe_fn.(segment_time)
     j_tf = timeframe_fn.(junction_time)
@@ -140,7 +140,7 @@ defmodule Aggregator do
     else
       junctions = state.junctions
     end
-    {:reply, :ok, %Aggregator{ global: state.global, segments: segments, junctions: junctions} }
+    {:noreply, %Aggregator{ global: state.global, segments: segments, junctions: junctions} }
   end
 
   def handle_call(:info, _from, state) do
