@@ -151,10 +151,10 @@ defmodule Aggregator do
     Oracle.reset_current(state.global.oracle)
     counter = Counter.new(fn (_) -> GenServer.reply(from, :calculated) end)
     #Get all segments
-    chunk(state.segments, 30, &spawn_current_segment(&1, state.global, counter))
+    chunk(state.segments, 50, &spawn_current_segment(&1, state.global, counter))
 
     #Get all junctions
-    chunk(state.junctions, 30, &spawn_current_junction(&1, state.global, counter))
+    chunk(state.junctions, 50, &spawn_current_junction(&1, state.global, counter))
 
     Counter.all_started(counter)
     {:noreply, state}

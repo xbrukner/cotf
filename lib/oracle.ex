@@ -83,7 +83,7 @@ defmodule Oracle do
     RoadMap.vertices(state.global.map)
       |> Enum.each fn(v) ->
           RoadMap.edges(state.global.map, v)
-            |> Enum.each &spawn_default(&1, state.global, counter)
+            |> Aggregator.chunk(100, &spawn_default(&1, state.global, counter))
         end
     Counter.all_started(counter)
     {:noreply, state}
@@ -113,14 +113,22 @@ defmodule Oracle do
     {:noreply, %Oracle{ state | current_junction: junctions} }
   end  
 
-  defp spawn_default({from, to, _length, _type}, global, counter) do
+  defp spawn_default(chunk, global, counter) do
     pid = self()
 #Create calls to junctions
-    Counter.spawn counter, fn -> Delay.junction(global, from, to, %{0 => 1}) end,
-          &default_delay_result(pid, :junction, from, to, &1)
+    Counter.spawn counter, fn -> 
+        for {from, to, _l, _t} <- chunk do
+          res = Delay.junction(global, from, to, %{0 => 1})
+          default_delay_result(pid, :junction, from, to, res)
+        end
+      end
 #Create calls to segments
-    Counter.spawn counter, fn -> Delay.segment(global, from, to, %{0 => 1}) end,
-          &default_delay_result(pid, :segment, from, to, &1)
+    Counter.spawn counter, fn -> 
+        for {from, to, _l, _t} <- chunk do
+          res = Delay.segment(global, from, to, %{0 => 1})
+          default_delay_result(pid, :segment, from, to, res)
+        end
+      end
   end
 end
 
