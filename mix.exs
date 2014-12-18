@@ -5,7 +5,8 @@ defmodule Cotf.Mixfile do
     [app: :cotf,
      version: "0.0.1",
      elixir: "~> 1.0",
-     deps: deps]
+     deps: deps,
+     escript: escript]
   end
 
   # Configuration for the OTP application
@@ -26,5 +27,9 @@ defmodule Cotf.Mixfile do
   # Type `mix help deps` for more examples and options
   defp deps do
     []
+  end
+
+  def escript do
+    [main_module: Cotf]
   end
 end

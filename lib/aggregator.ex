@@ -31,7 +31,77 @@ defmodule Aggregator do
   def compare(pid, %Aggregator{} = previous) do
     GenServer.call(pid, {:compare, previous})
   end
+
+  def write_results(map, prefix, %Aggregator{} = original, %Aggregator{} = latest) do
+    extract_max_key = fn ({k, _}, acc) -> Kernel.max k, acc end
+    extract_max_dict = fn ({_, dict}, acc) -> Kernel.max acc, Enum.reduce(dict, -1, extract_max_key) end
+    extract_max_tf = &Enum.reduce(&1, -1, extract_max_dict)
+
+    max_tf_junctions = Kernel.max extract_max_tf.(original.junctions), extract_max_tf.(latest.junctions)
+    max_tf_segments = Kernel.max extract_max_tf.(original.segments), extract_max_tf.(latest.segments)
+    max_tf = Kernel.max max_tf_junctions, max_tf_segments
+
+#Segment:
+#from, to, length, type, .... orig cars ...., ....latest cars....
+#Junction:
+#from, via, type, .... orig cars ...., ....latest cars....
+
+    write_segment(map, prefix, max_tf, original.segments, latest.segments)
+    write_junction(map, prefix, max_tf, original.junctions, latest.junctions)
+    max_tf
+  end
   
+  defp write_segment(map, file_prefix, max_tf, original, latest) do
+    {:ok, file} = File.open("#{file_prefix}segments.csv", [:write, :utf8])
+    RoadMap.vertices(map)
+      |> Enum.each fn(v) ->
+          RoadMap.edges(map, v)
+          |> Enum.each &write_single_segment(&1, file, max_tf, original, latest)
+        end
+    File.close(file) 
+  end
+
+  defp write_junction(map, file_prefix, max_tf, original, latest) do
+    {:ok, file} = File.open("#{file_prefix}junctions.csv", [:write, :utf8])
+    RoadMap.vertices(map)
+      |> Enum.each fn(v) ->
+          RoadMap.edges(map, v)
+          |> Enum.each &write_single_junction(&1, map, file, max_tf, original, latest)
+        end
+    File.close(file) 
+  end
+
+  defp write_single_segment({from, to, length, type}, file, max_tf, original, latest) do
+    IO.write file, "#{from},#{to},#{length},#{type},"
+    write_cars file, max_tf, Dict.get(original, {from, to})
+    IO.write file, ","
+    write_cars file, max_tf, Dict.get(latest, {from, to})
+    IO.write file, "\n"
+  end
+
+  defp write_single_junction({from, via, _length, _type}, map, file, max_tf, original, latest) do
+    type = RoadMap.vertex_type(map, via)
+    IO.write file, "#{from},#{via},#{type},"
+    write_cars file, max_tf, Dict.get(original, {from, via})
+    IO.write file, ","
+    write_cars file, max_tf, Dict.get(latest, {from, via})
+    IO.write file, "\n"
+  end
+
+  defp write_cars(file, max_tf, nil) do
+    str = Stream.cycle([0])
+    |> Enum.take(max_tf + 1)
+    |> Enum.join(",")
+    IO.write file, str
+  end
+
+  defp write_cars(file, max_tf, dict) do
+    range = for i <- 0..max_tf do
+      Dict.get(dict, i, 0)
+    end
+    IO.write file, Enum.join(range, ",")
+  end
+
 #GenServer
   def init(g) do
     {:ok, %Aggregator{ global: g, segments: HashDict.new(), junctions: HashDict.new() } }
@@ -78,6 +148,7 @@ defmodule Aggregator do
   end
 
   def handle_call(:calculate, from, state) do
+    Oracle.reset_current(state.global.oracle)
     counter = Counter.new(fn (_) -> GenServer.reply(from, :calculated) end)
     #Get all segments
     Enum.each state.segments, &spawn_current_segment(&1, state.global, counter)
