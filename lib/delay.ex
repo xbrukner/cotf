@@ -191,6 +191,12 @@ defp catch_up_start(first_car_distance, l_group_length, l_speeds_remaining, my_s
     distance_from_speeds(speeds, time_diff, 0)
   end
 
+#Remaining time is spent in this speed, copy speed
+  defp distance_from_speeds([{speed, _length, time}], time_diff, distance)
+    when time_diff > time do
+    {distance + (speed * time_diff / 3600), [{speed, 0, 0}]}
+  end
+
 #Remaining time is spent in this segment
   defp distance_from_speeds([{speed, _length, time} | r_speeds], time_diff, distance)
     when time_diff <= time do
