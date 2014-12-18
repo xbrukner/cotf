@@ -79,19 +79,19 @@ defmodule Cotf do
   end
 
   defp cycle(global, car_objects) do
-    cycle(global, car_objects, 1, nil)
+    cycle(global, car_objects, 1)
   end
 
-  defp cycle(global, car_objects, iteration, l_info) do
+  defp cycle(global, car_objects, iteration) do
     puts " Starting iteration #{iteration}..."
     calculate_plan(car_objects, iteration <= 2)
-    {same, info} = aggregate_compare(global, l_info)
-    if same do
+    #{same, info} = aggregate_compare(global, l_info)
+    if iteration == 200 do
       puts " done iterating!"
     else
       calculate_durations(global)
       puts " done!"
-      cycle(global, car_objects, iteration + 1, info)
+      cycle(global, car_objects, iteration + 1)
     end
   end
 
