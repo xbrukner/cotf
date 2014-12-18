@@ -103,6 +103,10 @@ defmodule Cotf do
     {Aggregator.compare(global.aggregator, info), Aggregator.get_info(global.aggregator)}
   end
 
+  defp aggregate_list_info(global) do
+    Aggregator.get_info(global.aggregator)
+  end
+
   defp calculate_durations(global) do
     puts "  Calculating durations..."
     Aggregator.calculate_delay(global.aggregator)
@@ -148,20 +152,25 @@ defmodule Cotf do
     global2 = %Global{ global2 | aggregator: Aggregator.new(global2) }
     Oracle.reset_current(global.oracle)
     puts "Calculating fixpoint for plan #{type}"
-    aggregation_info = fixpoint_plan2(global2, car_objects, type, 0, nil )
-    puts "done!"
+    aggregation_info = fixpoint_plan2(global2, car_objects, type, 0, [] )
     aggregation_info
   end
 
-  defp fixpoint_plan2(global, car_objects, type, iteration, l_info) do
+  defp fixpoint_plan2(global, car_objects, type, iteration, l_infos) do
     puts " Iteration #{iteration}"
     car_fixpoint_plan(global, car_objects, type)
-    {same, info} = aggregate_compare(global, l_info)
-    if !same and iteration < 20 do
-      Aggregator.calculate_delay(global.aggregator)
-      fixpoint_plan2(global, car_objects, type, iteration + 1, info)
-    else
+    info = aggregate_list_info(global)
+    if info in l_infos do
+      IO.puts "done!"
       info
+    else
+      if iteration == 100 do
+        IO.puts "done! (100)"
+        info
+      else
+        Aggregator.calculate_delay(global.aggregator)
+        fixpoint_plan2(global, car_objects, type, iteration + 1, [info] ++ l_infos)
+      end
     end
   end
 
