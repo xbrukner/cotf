@@ -151,10 +151,10 @@ defmodule Aggregator do
     Oracle.reset_current(state.global.oracle)
     counter = Counter.new(fn (_) -> GenServer.reply(from, :calculated) end)
     #Get all segments
-    Enum.each state.segments, &spawn_current_segment(&1, state.global, counter)
+    chunk(state.segments, 30, &spawn_current_segment(&1, state.global, counter))
 
     #Get all junctions
-    Enum.each state.junctions, &spawn_current_junction(&1, state.global, counter)
+    chunk(state.junctions, 30, &spawn_current_junction(&1, state.global, counter))
 
     Counter.all_started(counter)
     {:noreply, state}
@@ -164,14 +164,32 @@ defmodule Aggregator do
     {:reply, l_segments == state.segments and l_junctions == state.junctions, state}
   end
 
-  defp spawn_current_junction({{from, to}, dict}, global, counter) do
-    Counter.spawn counter, fn -> Delay.junction(global, from, to, dict) end,
-        &Oracle.current_delay_result(global.oracle, :junction, from, to, &1)
+  defp spawn_current_junction(chunk, global, counter) do
+    Counter.spawn counter, fn -> 
+        for {{from, to}, dict} <- chunk do
+          r = Delay.junction(global, from, to, dict)
+          Oracle.current_delay_result(global.oracle, :junction, from, to, r)
+        end
+      end
   end
 
-  defp spawn_current_segment({{from, to}, dict}, global, counter) do
-    Counter.spawn counter, fn -> Delay.segment(global, from, to, dict) end,
-        &Oracle.current_delay_result(global.oracle, :segment, from, to, &1) 
+  defp spawn_current_segment(chunk, global, counter) do
+    Counter.spawn counter, fn -> 
+        for {{from, to}, dict} <- chunk do
+          r = Delay.segment(global, from, to, dict)
+          Oracle.current_delay_result(global.oracle, :segment, from, to, r)
+        end
+      end
+  end
+
+#Split into chunks of count, pass each to callback
+  def chunk([], _count, _callback) do
+  end
+
+  def chunk(list, count, callback) do
+    {chunk, next} = Enum.split(list, count)
+    callback.(chunk)
+    chunk(next, count, callback)
   end
 
 end

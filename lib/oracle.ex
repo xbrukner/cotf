@@ -89,6 +89,10 @@ defmodule Oracle do
     {:noreply, state}
   end
 
+  def handle_call(:reset_current, _from, state) do
+    {:reply, :ok, %Oracle{ state | current_segment: HashDict.new(), current_junction: HashDict.new()}}
+  end
+
   def handle_cast({:default, :segment, from, to, time}, state) do
     segments = Dict.put_new(state.default_segment, {from, to}, time)
     {:noreply, %Oracle{ state | default_segment: segments} }
@@ -108,10 +112,6 @@ defmodule Oracle do
     junctions = Dict.put_new(state.current_junction, {from, via}, dict)
     {:noreply, %Oracle{ state | current_junction: junctions} }
   end  
-
-  def handle_call(:reset_current, _from, state) do
-    {:reply, :ok, %Oracle{ state | current_segment: HashDict.new(), current_junction: HashDict.new()}}
-  end
 
   defp spawn_default({from, to, _length, _type}, global, counter) do
     pid = self()
