@@ -5,7 +5,7 @@ defmodule Aggregator do
   def new(%Global{} = g) do
     #Prepare partition fn
     vertices = RoadMap.vertices(g.map)
-    mapping = Enum.reduce(vertices, HashDict.new(), fn (v, acc) -> Dict.put_new(acc, v, Dict.size(acc)) end)
+    mapping = Enum.reduce(vertices, HashDict.new(), fn (v, acc) -> Dict.put_new(acc, v, rem(Dict.size(acc), 50) ) end)
     
     part = fn {_, via, _, _, _} ->
       Dict.fetch!(mapping, via)
