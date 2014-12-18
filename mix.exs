@@ -26,7 +26,7 @@ defmodule Cotf.Mixfile do
   #
   # Type `mix help deps` for more examples and options
   defp deps do
-    []
+    [{:json, "~> 0.3.0"}]
   end
 
   def escript do
