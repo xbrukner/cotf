@@ -6,6 +6,10 @@ defmodule Cotf do
     puts "Reading map #{map_file}... "
     map = RoadMap.new(map_file)
     puts "done!"
+
+    puts " Vertices: " <> to_string(Enum.count(RoadMap.vertices(map)))
+    puts " Edges: " <> to_string(Enum.count(RoadMap.edges(map)))
+    puts " Starting and ending: " <> to_string(Dict.size(RoadMap.get_start_end_vertices(map)))
     
     puts "Using timeframe of 60 seconds"
     global = %Global{map: map, tf_duration: 60}
@@ -109,7 +113,7 @@ defmodule Cotf do
     puts "  Calculating plan..."
     c = Counter.Waiter.new()
     for car <- car_objects do
-      if all or :random.uniform(5) == 1 do
+      if all or :random.uniform(40) == 1 do
         Counter.Waiter.spawn c, fn ->
           Car.calculate_plan(car)
           Car.send_plan(car)

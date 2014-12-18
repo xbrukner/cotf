@@ -21,7 +21,7 @@ defmodule Oracle do
   end
 
   def calculate_default(pid) do
-    :calculated = GenServer.call(pid, :calculate_default)
+    :calculated = GenServer.call(pid, :calculate_default, :infinity)
   end
 
   def default_delay_result(pid, type, from, to, estimation) do
