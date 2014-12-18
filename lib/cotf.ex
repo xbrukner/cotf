@@ -157,7 +157,7 @@ defmodule Cotf do
     puts " Iteration #{iteration}"
     car_fixpoint_plan(global, car_objects, type)
     {same, info} = aggregate_compare(global, l_info)
-    if !same do
+    if !same and iteration < 20 do
       Aggregator.calculate_delay(global.aggregator)
       fixpoint_plan2(global, car_objects, type, iteration + 1, info)
     else

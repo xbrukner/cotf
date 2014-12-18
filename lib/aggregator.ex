@@ -161,7 +161,10 @@ defmodule Aggregator do
   end
 
   def handle_call({:compare, %Aggregator{ segments: l_segments, junctions: l_junctions}}, _from, state) do
-    {:reply, l_segments == state.segments and l_junctions == state.junctions, state}
+    s = l_segments == state.segments
+    j = l_junctions == state.junctions
+    IO.inspect {s, j}
+    {:reply, s and j, state}
   end
 
   defp spawn_current_junction(chunk, global, counter) do
