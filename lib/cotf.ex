@@ -146,6 +146,7 @@ defmodule Cotf do
   defp fixpoint_plan(global, car_objects, type) do
     global2 = %Global{map: global.map, tf_duration: 60, oracle: global.oracle}
     global2 = %Global{ global2 | aggregator: Aggregator.new(global2) }
+    Oracle.reset_current(global.oracle)
     puts "Calculating fixpoint for plan #{type}"
     aggregation_info = fixpoint_plan2(global2, car_objects, type, 0, nil )
     puts "done!"
