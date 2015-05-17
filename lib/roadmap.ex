@@ -52,14 +52,17 @@ defmodule RoadMap do
 
   def edges(%RoadMap{} = map) do
     :digraph.edges(map.map)
+      |> Enum.map(&correct_edges(map, &1))
   end
 
   def edges(%RoadMap{} = map, from) do
     :digraph.out_edges(map.map, from)
-      |> Enum.map(fn e ->
-          {_edge, from, to, {length, type}} = :digraph.edge(map.map, e)
-          {from, to, length, type}
-        end)
+      |> Enum.map(&correct_edges(map, &1))
+  end
+
+  defp correct_edges(map, e) do
+    {_edge, from, to, {length, type}} = :digraph.edge(map.map, e)
+    {from, to, length, type}
   end
 
   def length_type(%RoadMap{} = map, from, to) do
