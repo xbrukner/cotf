@@ -33,8 +33,7 @@ defmodule CarTest do
 
     c = Car.new("A", 0, "H", g)
 
-    :ok = Car.calculate_plan(c)
-    :ok = Car.send_plan(c)
+    :ok = Car.calculate_and_send(c)
 
     info = Aggregator.get_info(g.aggregator)
     assert Dict.get(info.junctions, {"A", "G"}) == %{1911 => 1}

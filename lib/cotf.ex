@@ -135,8 +135,7 @@ defmodule Cotf do
     for car <- car_objects do
       if all or :random.uniform(40) == 1 do
         Counter.Waiter.spawn c, fn ->
-          Car.calculate_plan(car)
-          Car.send_plan(car)
+          Car.calculate_and_send(car)
         end
       end
     end

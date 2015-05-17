@@ -19,10 +19,15 @@ defmodule Car do
     GenServer.call(pid, :send_plan, :infinity)
   end
 
+  #Calculate new plan, send it to aggregator and hibernate (to save memory)
+  def calculate_and_send(pid) do
+    GenServer.call(pid, :calculate_send, :infinity)
+  end
+
   def result(pid) do
     GenServer.call(pid, :result, :infinity)
   end
-  
+
   def fixpoint_plan(pid, global, type) do
     #After this, no more iterations!
     GenServer.call(pid, {:fixpoint_plan, global, type}, :infinity)
@@ -50,7 +55,7 @@ defmodule Car do
       state = %Car{state | orig_plan: orig_plan }
     end
     state = %Car{state | last_plan: state.plan} #Copy last plan
-    
+
     plan = Planner.route(state.global.planner, state.from, state.to, state.start_time)
     state = %Car{state | plan: plan}
     {:reply, :ok, state}
@@ -61,10 +66,16 @@ defmodule Car do
     p = state.plan
 
     l_p = state.last_plan
-    
+
     send_plan(a, p.from, p.steps, l_p.from, l_p.steps )
-    
+
     {:reply, :ok, state}
+  end
+
+  def handle_call(:calculate_send, from, state) do
+    {:reply, :ok, state} = handle_call(:calculate_plan, from, state)
+    {:reply, :ok, state} = handle_call(:send_plan, from, state)
+    {:reply, :ok, state, :hibernate}
   end
 
   def handle_call({:fixpoint_plan, global, type}, _from, state) do
@@ -99,7 +110,7 @@ defmodule Car do
   defp send_plan(a, _from, [], l_from, [l_next | l_rest]) do
     {newfrom, info} = extract_send_info(l_from, l_next, l_rest)
     Aggregator.delete(a, info)
-    
+
     send_plan(a, nil, [], newfrom, l_rest)
   end
 
@@ -107,7 +118,7 @@ defmodule Car do
   defp send_plan(a, from, [next | rest], _l_from, []) do
     {newfrom, info} = extract_send_info(from, next, rest)
     Aggregator.insert(a, info)
-    
+
     send_plan(a, newfrom, rest, nil, [])
   end
 
@@ -116,7 +127,7 @@ defmodule Car do
     {newfrom, info} = extract_send_info(from, next, rest)
     {l_newfrom, l_info} = extract_send_info(l_from, l_next, l_rest)
     Aggregator.update(a, l_info, info)
-    
+
     send_plan(a, newfrom, rest, l_newfrom, l_rest)
   end
 
@@ -132,4 +143,3 @@ defmodule Car do
     {via, {from, via, to, vertexTime, edgeTime} }
   end
 end
-
