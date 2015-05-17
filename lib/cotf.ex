@@ -1,7 +1,8 @@
 defmodule Cotf do
+  @default_tf_duration 60
+
   def main(args) do
-    [map_file, cars] = args
-    {cars, _} = Integer.parse(cars)
+    {map_file, cars, tf_duration} = parse_args(args)
     puts "Cache of the Future"
     puts "Reading map #{map_file}... "
     map = RoadMap.new(map_file)
@@ -10,9 +11,9 @@ defmodule Cotf do
     puts " Vertices: " <> to_string(Enum.count(RoadMap.vertices(map)))
     puts " Edges: " <> to_string(Enum.count(RoadMap.edges(map)))
     puts " Starting and ending: " <> to_string(Dict.size(RoadMap.get_start_end_vertices(map)))
-    
-    puts "Using timeframe of 60 seconds"
-    global = %Global{map: map, tf_duration: 60}
+
+    puts "Using timeframe of #{tf_duration} seconds"
+    global = %Global{map: map, tf_duration: tf_duration}
     global = %Global{ global | oracle: Oracle.new(global) }
     global = %Global{ global | planner: Planner.new(global), aggregator: Aggregator.new(global) }
 
@@ -27,14 +28,14 @@ defmodule Cotf do
 
     points = RoadMap.get_start_end_vertices(map)
     seconds_in_hour = 3600
-    
+
     car_objects = gen_cars(global, points, seconds_in_hour, cars)
     puts "done!"
 
     puts "Starting cycling..."
     cycle(global, car_objects)
     puts "done!"
-    
+
     original = fixpoint_plan(global, car_objects, :original)
     latest = fixpoint_plan(global, car_objects, :latest)
     #TODO - update times for original plan and last plan, calculate aggregation
@@ -45,6 +46,23 @@ defmodule Cotf do
     output_aggregation(file_prefix, original, latest, global)
     puts "done!"
   end
+
+  defp parse_args([map_file, cars]), do: check_args {map_file, cars, "#{@default_tf_duration}"}
+  defp parse_args([map_file, cars, tf_duration]), do: check_args {map_file, cars, tf_duration}
+
+  defp parse_args(_) do
+    IO.puts "Usage: cotf map_file cars [timeframe duration]"
+    IO.puts "map_file is in JSON format"
+    IO.puts "Default timeframe duration is #{@default_tf_duration}"
+    Kernel.exit(:normal)
+  end
+
+  defp check_args({map_file, cars, tf_duration}) do
+    {cars, _} = Integer.parse cars
+    {tf_duration, _} = Integer.parse tf_duration
+    {map_file, cars, tf_duration}
+  end
+
 
   defp gen_cars(global, points, end_time, number) do
     gen_cars(global, points, Dict.size(points), end_time, number, [])
@@ -148,7 +166,7 @@ defmodule Cotf do
   end
 
   defp fixpoint_plan(global, car_objects, type) do
-    global2 = %Global{map: global.map, tf_duration: 60, oracle: global.oracle}
+    global2 = %Global{map: global.map, tf_duration: global.tf_duration, oracle: global.oracle}
     global2 = %Global{ global2 | aggregator: Aggregator.new(global2) }
     Oracle.reset_current(global.oracle)
     puts "Calculating fixpoint for plan #{type}"
