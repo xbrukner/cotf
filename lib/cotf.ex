@@ -5,12 +5,12 @@ defmodule Cotf do
     {map_file, cars, tf_duration} = parse_args(args)
     puts "Cache of the Future"
     puts "Reading map #{map_file}... "
-    map = RoadMap.new(map_file)
+    {map, sev} = RoadMap.new(map_file)
     puts "done!"
 
     puts " Vertices: " <> to_string(Enum.count(RoadMap.vertices(map)))
     puts " Edges: " <> to_string(Enum.count(RoadMap.edges(map)))
-    puts " Starting and ending: " <> to_string(Dict.size(RoadMap.get_start_end_vertices(map)))
+    puts " Starting and ending: " <> to_string(Dict.size(sev))
 
     puts "Using timeframe of #{tf_duration} seconds"
     global = %Global{map: map, tf_duration: tf_duration}
@@ -26,10 +26,8 @@ defmodule Cotf do
     puts "Using seed {#{a1}, #{a2}, #{a3}}"
     puts "Generating #{cars} random cars within next hour..."
 
-    points = RoadMap.get_start_end_vertices(map)
     seconds_in_hour = 3600
-
-    car_objects = gen_cars(global, points, seconds_in_hour, cars)
+    car_objects = gen_cars(global, sev, seconds_in_hour, cars)
     puts "done!"
 
     puts "Starting cycling..."

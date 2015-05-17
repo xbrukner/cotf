@@ -2,7 +2,7 @@ defmodule DelayTest do
   use ExUnit.Case
 
   test "Junction delay" do
-    m = RoadMap.new("sample_map.txt")
+    {m, _sev} = RoadMap.new("sample_map.txt")
     g = %Global{map: m, tf_duration: 60}
     cars = %{0 => 30, 1 => 4, 3 => 20}
 
@@ -12,19 +12,19 @@ defmodule DelayTest do
   end
 
   test "Segment delay" do
-    m = RoadMap.new("sample_map.txt")
+    {m, _sev} = RoadMap.new("sample_map.txt")
     g = %Global{map: m, tf_duration: 60}
     cars = %{0 => 10, 1 => 20, 2 => 30, 3 => 10, 4 => 10, 5 => 10}
 
 #Modified to reflect float arithmetics of elixir
-    assert Delay.segment(g, "A", "B", cars) == 
+    assert Delay.segment(g, "A", "B", cars) ==
       %{0 => 268.94652696797493, 1 => 293.38625573372667,
              2 => 442.4077732530721, 3 => 411.78400320845816,
              4 => 371.0267722433895, 5 => 330.2695412783207}
   end
 
   test "Bad meeting place for segment" do
-    m = RoadMap.new("sample_map.txt")
+    {m, _sev} = RoadMap.new("sample_map.txt")
     g = %Global{map: m, tf_duration: 60}
 
     cars = %{0=>14,1=>13,2=>19,3=>28,4=>26,5=>22,6=>16,7=>19,8=>22,9=>11,10=>21,11=>23,12=>25,13=>29,14=>29,15=>20,16=>26,17=>24,18=>22,19=>16,20=>23,21=>21,22=>36,23=>26,24=>24,25=>25,26=>15,27=>21,28=>21,29=>23,30=>26,31=>23,32=>25,33=>39,34=>28,35=>21,36=>25,37=>25,38=>25,39=>24,40=>29,41=>26,42=>18,43=>20,44=>21,45=>23,46=>25,47=>17,48=>18,49=>23,50=>17,51=>20,52=>24,53=>20,54=>24,55=>26,56=>22,57=>29,58=>23,59=>22,60=>16,61=>6,62=>4,63=>1}
@@ -33,7 +33,7 @@ defmodule DelayTest do
   end
 
   test "Long queue + short queue" do
-    m = RoadMap.new("sample_map.txt")
+    {m, _sev} = RoadMap.new("sample_map.txt")
     g = %Global{map: m, tf_duration: 60}
 
     cars = %{0 => 1000, 1 => 10, 2 => 10}

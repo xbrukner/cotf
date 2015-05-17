@@ -1,5 +1,5 @@
 defmodule RoadMap do
-  defstruct map: nil, start_end_vertices: nil
+  defstruct map: nil
 
   def new(filename) do
     if String.ends_with?(filename, ".txt") do
@@ -11,32 +11,27 @@ defmodule RoadMap do
     end
   end
 
-  def get_start_end_vertices(%RoadMap{} = map) do
-    map.start_end_vertices
-  end
-
   defp parser(data) do
-    parser(String.split(data, "\n"), %RoadMap{map: :digraph.new, start_end_vertices: HashDict.new}, :vertices)
+    parser(String.split(data, "\n"), %RoadMap{map: :digraph.new}, HashDict.new, :vertices)
   end
 
-  defp parser(["" | rest], state, :vertices) do
-    parser(rest, state, :edges)
+  defp parser(["" | rest], state, sev, :vertices) do
+    parser(rest, state, sev, :edges)
   end
 
-  defp parser([v | rest], state, :vertices) do
+  defp parser([v | rest], state, sev, :vertices) do
     #TODO - coordinates in the future
     label = 1 #Type
     :digraph.add_vertex(state.map, v, label)
-    newstate = %RoadMap{ state | start_end_vertices: Dict.put_new(state.start_end_vertices, Dict.size(state.start_end_vertices), v) }
-    parser(rest, newstate, :vertices)
+    parser(rest, state, Dict.put_new(sev, Dict.size(sev), v), :vertices)
   end
 
 #From vertices to edges
-  defp parser(["" | _rest], state, :edges) do
-    state
+  defp parser(["" | _rest], state, sev, :edges) do
+    {state, sev}
   end
 
-  defp parser([e | rest], state, :edges) do
+  defp parser([e | rest], state, sev, :edges) do
     data = String.split(e, " ")
     [from, to, length] = Enum.take(data, 3)
     label = {length, 1} #1 = Type
@@ -44,11 +39,11 @@ defmodule RoadMap do
     if Enum.count(data) == 3 do #Two way
       :digraph.add_edge(state.map, to, from, label)
     end
-    parser(rest, state, :edges)
+    parser(rest, state, sev, :edges)
   end
 
-  defp parser(_, state, _) do
-    state
+  defp parser(_, state, sev, _) do
+    {state, sev}
   end
 
   def vertices(%RoadMap{} = map) do
@@ -61,8 +56,8 @@ defmodule RoadMap do
 
   def edges(%RoadMap{} = map, from) do
     :digraph.out_edges(map.map, from)
-      |> Enum.map(fn e -> 
-          {_edge, from, to, {length, type}} = :digraph.edge(map.map, e) 
+      |> Enum.map(fn e ->
+          {_edge, from, to, {length, type}} = :digraph.edge(map.map, e)
           {from, to, length, type}
         end)
   end
@@ -107,7 +102,7 @@ defmodule RoadMap do
     largest = Enum.max_by(scc, &Enum.count/1)
     {map2, residential2} = scc_map(map, largest, residential)
     :digraph.delete(map)
-    %RoadMap{map: map2, start_end_vertices: residential2}
+    {%RoadMap{map: map2}, residential2}
   end
 
   defp scc_map(map, largest, residential) do
@@ -115,7 +110,7 @@ defmodule RoadMap do
 
 #Copy vertices and residential
     residential2 = Enum.reduce(largest, HashDict.new(), fn (v, acc) ->
-        :digraph.add_vertex(map2, v, elem(:digraph.vertex(map, v), 1)) 
+        :digraph.add_vertex(map2, v, elem(:digraph.vertex(map, v), 1))
         if Dict.has_key?(residential, v) do
           Dict.put_new(acc, Dict.size(acc), v)
         else
@@ -169,7 +164,6 @@ defmodule RoadMap do
         else
           residential
         end
-        
         extract_roads(features, points, map, residential2)
       else
         extract_roads(features, points, map, residential)
@@ -239,6 +233,7 @@ defmodule RoadMap do
     end
   end
 
+if false do #No longer needed, for debug only (see parse_json)
   defp extract_3_info([], tof, ms, gt) do
     {tof, ms, gt}
   end
@@ -246,7 +241,7 @@ defmodule RoadMap do
     if String.starts_with?(feature["id"], "way/") do
       properties = feature["properties"]
       geometry = feature["geometry"]
-      
+
       tof2 = if Dict.has_key?(properties, "highway") do
         Dict.put_new(tof, properties["highway"] , 1)
       else
@@ -259,7 +254,7 @@ defmodule RoadMap do
         ms
       end
 
-      
+
       gt2 = if Dict.has_key?(geometry, "type") do
         Dict.put_new(gt, geometry["type"] , 1)
       else
@@ -274,6 +269,7 @@ defmodule RoadMap do
       extract_3_info(features, tof, ms, gt)
     end
   end
+end
 
 
   defp types_for_highway_and_speed(properties) do
@@ -308,5 +304,3 @@ defmodule RoadMap do
     end
   end
 end
-
-

@@ -20,29 +20,29 @@ defmodule PlanTest do
   end
 
   test "Plan can calculate length" do
-    m = RoadMap.new("sample_map.txt")
+    {m, _sev} = RoadMap.new("sample_map.txt")
     g = %Global{map: m}
     p = Plan.new("A", "F", 21)
 
     p = Plan.prependStep(p, "F", 3, 6)
     p = Plan.prependStep(p, "C", 2, 5)
     p = Plan.prependStep(p, "B", 1, 4)
-    
+
     assert Plan.calculateLength(g, p) == 6 + 4 + 2
   end
 
   test "Plan can recalculate times" do
-    m = RoadMap.new("sample_map.txt")
+    {m, _sev} = RoadMap.new("sample_map.txt")
     g = %Global{ map: m, tf_duration: 60 }
     g = %Global{ g | oracle: Oracle.new(g) }
     Oracle.calculate_default(g.oracle)
-  
+
     p = Plan.new("A", "H", 21)
 
     p = Plan.prependStep(p, "H", 1, 4)
     p = Plan.prependStep(p, "I", 2, 5)
     p = Plan.prependStep(p, "G", 3, 0)
-    
+
     p2 = Plan.updateTimes(g, p)
     assert p2.steps == [{"G", 0, 171.8636305433359},
             {"I", 179.49074918740368, 222.90391021234174},

@@ -1,8 +1,8 @@
 defmodule RoadMapTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test "Can load map from file" do
-    m = RoadMap.new("sample_map.txt")
+    {m, sev} = RoadMap.new("sample_map.txt")
 
     assert RoadMap.vertices(m) |>
       Enum.count == 9
@@ -18,13 +18,17 @@ defmodule RoadMapTest do
 
     assert RoadMap.length_type(m, "A", "B") == {6, 1}
 
-    assert Dict.equal? RoadMap.get_start_end_vertices(m),
+    assert Dict.equal? sev,
         %{0 => "A", 1 => "B", 2 => "C", 3 => "D", 4 => "E", 5 => "F", 6 => "G", 7 => "H", 8 => "I"}
   end
 
-  test "Can load JSON file" do
-    RoadMap.new("aalborg_small_output.json")
-    RoadMap.new("aalborg_large_output.json")
+  test "Can load JSON file small" do
+    {_m, sev} = RoadMap.new("aalborg_small_output.json")
+    assert Dict.size(sev) == 4120
+  end
+
+  test "Can load JSON file large" do
+    {_m, sev} = RoadMap.new("aalborg_large_output.json")
+    assert Dict.size(sev) == 7803
   end
 end
-

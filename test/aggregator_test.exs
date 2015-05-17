@@ -2,7 +2,7 @@ defmodule AggregatorTest do
   use ExUnit.Case
 
   test "Aggregator can start from global" do
-    m = RoadMap.new("sample_map.txt")
+    {m, _sev} = RoadMap.new("sample_map.txt")
     g = %Global{ map: m, tf_duration: 10 }
     g = %{ g | planner: Planner.new(g), oracle: Oracle.new(g) }
 
@@ -11,12 +11,12 @@ defmodule AggregatorTest do
   end
 
   test "Aggregator can insert time" do
-    m = RoadMap.new("sample_map.txt")
+    {m, _sev} = RoadMap.new("sample_map.txt")
     g = %Global{ map: m, tf_duration: 10}
     g = %{ g | planner: Planner.new(g), oracle: Oracle.new(g) }
 
     a = Aggregator.new(g)
-  
+
     Aggregator.insert(a, {"A", "B", "C", 5, 10})
     info = Aggregator.get_info(a)
     assert Dict.get(info.junctions, {"A", "B"}) == %{1 => 1}
@@ -34,7 +34,7 @@ defmodule AggregatorTest do
   end
 
   test "Aggregator can submit to Oracle" do
-    m = RoadMap.new("sample_map.txt")
+    {m, _sev} = RoadMap.new("sample_map.txt")
     g = %Global{ map: m, tf_duration: 60}
     g = %{ g | planner: Planner.new(g), oracle: Oracle.new(g) }
 
@@ -50,12 +50,12 @@ defmodule AggregatorTest do
   end
 
   test "Aggregator can insert, update and delete" do
-    m = RoadMap.new("sample_map.txt")
+    {m, _sev} = RoadMap.new("sample_map.txt")
     g = %Global{ map: m, tf_duration: 10}
     g = %{ g | planner: Planner.new(g), oracle: Oracle.new(g) }
 
     a = Aggregator.new(g)
-  
+
     Aggregator.insert(a, {"A", "B", "C", 5, 10})
     info = Aggregator.get_info(a)
     assert Dict.get(info.junctions, {"A", "B"}) == %{1 => 1}
@@ -83,15 +83,15 @@ defmodule AggregatorTest do
   end
 
   test "Aggregator can compare" do
-    m = RoadMap.new("sample_map.txt")
+    {m, _sev} = RoadMap.new("sample_map.txt")
     g = %Global{ map: m, tf_duration: 10}
     g = %{ g | planner: Planner.new(g), oracle: Oracle.new(g) }
 
     a = Aggregator.new(g)
-  
+
     Aggregator.insert(a, {"A", "B", "C", 5, 10})
     info = Aggregator.get_info(a)
-    assert Aggregator.compare(a, info) == true 
+    assert Aggregator.compare(a, info) == true
 
     Aggregator.insert(a, {"A", "B", "C", 5, 10})
     assert Aggregator.compare(a, info) == false
