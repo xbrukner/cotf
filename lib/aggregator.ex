@@ -1,204 +1,237 @@
 defmodule Aggregator do
+  #ETS format
+  # segments: {{from, to, start}, estimate}
+  # junctions: {{from, via, start}, estimate}
   defstruct global: nil, segments: nil, junctions: nil
-  use GenServer
 
   def new(%Global{} = g) do
-    {:ok, pid} = GenServer.start_link(__MODULE__, g)
-    pid
+    segments = :ets.new(:aggregator_segments, [
+        :ordered_set, :public,
+        {:read_concurrency, :true}
+      ])
+    junctions = :ets.new(:aggregator_junctions, [
+        :ordered_set, :public,
+        {:read_concurrency, :true}
+      ])
+    %Aggregator{global: g, segments: segments, junctions: junctions}
   end
 
-  def insert(pid, {from, via, to, segment_time, junction_time}) 
-    when is_pid(pid) do
-    GenServer.cast(pid, {:insert, from, via, to, segment_time, junction_time})
+  def insert(%Aggregator{segments: segments, junctions: junctions} = aggregator,
+    {_from, _via, to, _st, _jt} = data) do
+
+    {s_key, j_key} = get_keys(aggregator, data)
+
+    if :ets.insert_new(segments, {s_key, 1}) == false do #Insert for non-existing key
+      :ets.update_counter(segments, s_key, 1) #or update -> increment by one
+    end
+    if to != nil do #Also junction time
+      if :ets.insert_new(junctions, {j_key, 1}) == false do
+        :ets.update_counter(junctions, j_key, 1)
+      end
+    end
   end
 
-  def delete(pid, {from, via, to, segment_time, junction_time})
-    when is_pid(pid) do
-    GenServer.cast(pid, {:delete, from, via, to, segment_time, junction_time})
+  def delete(%Aggregator{segments: segments, junctions: junctions} = aggregator,
+    {_from, _via, to, _st, _jt} = data) do
+
+    {s_key, j_key} = get_keys(aggregator, data)
+    :ets.update_counter(segments, s_key, -1) #Update -> no need for insertion, as key must have been there
+    if to != nil do #Also junction time
+      :ets.update_counter(junctions, j_key, -1)
+    end
   end
 
-  def update(pid, old, new) do
-    delete(pid, old)
-    insert(pid, new)
+  def update(aggregator, old, new) do
+    delete(aggregator, old)
+    insert(aggregator, new)
   end
 
-  def get_info(pid)
-    when is_pid(pid) do
-    GenServer.call(pid, :info, :infinity)
+  defp get_keys(%Aggregator{global: global}, {from, via, _to, segment_time, junction_time}) do
+    timeframe_fn = Global.timeframe_fn(global)
+    s_tf = timeframe_fn.(segment_time)
+    s_key = {from, via, s_tf}
+    j_tf = timeframe_fn.(junction_time)
+    j_key = {from, via, j_tf} #Ignoring to = merging all together,
+
+    {s_key, j_key}
   end
 
-  def calculate_delay(pid)
-    when is_pid(pid) do
-     :calculated = GenServer.call(pid, :calculate, :infinity)
+  #Tests only
+  def get_info(%Aggregator{segments: segments, junctions: junctions}) do
+    %{
+      segments: :ets.tab2list(segments),
+      junctions: :ets.tab2list(junctions)
+    }
   end
 
-  def compare(pid, %Aggregator{} = previous)
-    when is_pid(pid) do
-    GenServer.call(pid, {:compare, previous}, :infinity)
+  def get_copy(%Aggregator{segments: segments, junctions: junctions, global: global}) do
+    n = new(global)
+    copy_table(segments, n.segments)
+    copy_table(junctions, n.junctions)
+    n
   end
 
+  defp copy_table(from, to) do
+    get_resource(from, 50)
+    |> Stream.each(&:ets.insert(to, &1))
+    |> Stream.run
+  end
+
+  def stop(%Aggregator{segments: segments, junctions: junctions}) do
+    :ets.delete(segments)
+    :ets.delete(junctions)
+  end
+
+#Writing result to file
   def write_results(map, prefix, %Aggregator{} = original, %Aggregator{} = latest) do
-    extract_max_key = fn ({k, _}, acc) -> Kernel.max k, acc end
-    extract_max_dict = fn ({_, dict}, acc) -> Kernel.max acc, Enum.reduce(dict, -1, extract_max_key) end
-    extract_max_tf = &Enum.reduce(&1, -1, extract_max_dict)
-
-    max_tf_junctions = Kernel.max extract_max_tf.(original.junctions), extract_max_tf.(latest.junctions)
-    max_tf_segments = Kernel.max extract_max_tf.(original.segments), extract_max_tf.(latest.segments)
-    max_tf = Kernel.max max_tf_junctions, max_tf_segments
+    #Calculate maximum on all tables in parallel
+    max_tf = [original.segments, original.junctions, latest.segments, latest.junctions]
+    |> Enum.map(fn table -> Task.async(fn -> :ets.foldl(table, -1, &max_tf/2) end) end)
+    |> Enum.map(&Task.await/1)
+    |> Enum.max
 
 #Segment:
 #from, to, length, type, .... orig cars ...., ....latest cars....
 #Junction:
 #from, via, type, .... orig cars ...., ....latest cars....
 
-    write_segment(map, prefix, max_tf, original.segments, latest.segments)
-    write_junction(map, prefix, max_tf, original.junctions, latest.junctions)
+    #Write to both files in parallel
+    segments = Task.async(fn -> write_segment(map, prefix, max_tf, original, latest) end)
+    junctions = Task.async(fn -> write_junction(map, prefix, max_tf, original, latest) end)
+
+    Task.await(segments)
+    Task.await(junctions)
+
     max_tf
   end
-  
+
+  defp max_tf({{_type, _from, _to, tf}, _count}, max) do
+    Kernel.max(tf, max)
+  end
+
   defp write_segment(map, file_prefix, max_tf, original, latest) do
     {:ok, file} = File.open("#{file_prefix}segments.csv", [:write, :utf8])
-    RoadMap.vertices(map)
-      |> Enum.each fn(v) ->
-          RoadMap.edges(map, v)
-          |> Enum.each &write_single_segment(&1, file, max_tf, original, latest)
-        end
-    File.close(file) 
+    RoadMap.edges(map)
+    |> Enum.each(&write_single_segment(&1, file, max_tf, original, latest))
+    File.close(file)
   end
 
   defp write_junction(map, file_prefix, max_tf, original, latest) do
     {:ok, file} = File.open("#{file_prefix}junctions.csv", [:write, :utf8])
-    RoadMap.vertices(map)
-      |> Enum.each fn(v) ->
-          RoadMap.edges(map, v)
-          |> Enum.each &write_single_junction(&1, map, file, max_tf, original, latest)
-        end
-    File.close(file) 
+    RoadMap.edges(map)
+    |> Enum.each(&write_single_junction(&1, map, file, max_tf, original, latest))
+    File.close(file)
   end
 
   defp write_single_segment({from, to, length, type}, file, max_tf, original, latest) do
-    IO.write file, "#{inspect from},#{inspect to},#{length},#{type},"
-    write_cars file, max_tf, Dict.get(original, {from, to})
-    IO.write file, ","
-    write_cars file, max_tf, Dict.get(latest, {from, to})
+    IO.write file, "#{inspect from},#{inspect to},#{length},#{type}"
+    write_cars(file, max_tf, original.segment, from, to)
+    write_cars(file, max_tf, latest.segment, from, to)
     IO.write file, "\n"
   end
 
   defp write_single_junction({from, via, _length, _type}, map, file, max_tf, original, latest) do
     type = RoadMap.vertex_type(map, via)
-    IO.write file, "#{inspect from},#{inspect via},#{type},"
-    write_cars file, max_tf, Dict.get(original, {from, via})
-    IO.write file, ","
-    write_cars file, max_tf, Dict.get(latest, {from, via})
+    IO.write file, "#{inspect from},#{inspect via},#{type}"
+    write_cars(file, max_tf, original.junction, from, via)
+    write_cars(file, max_tf, latest.junction, from, via)
     IO.write file, "\n"
   end
 
-  defp write_cars(file, max_tf, nil) do
-    str = Stream.cycle([0])
-    |> Enum.take(max_tf + 1)
-    |> Enum.join(",")
-    IO.write file, str
+  defp write_cars(file, max_tf, table, from, to) do
+    #Prepends all numbers by comma
+    last = :ets.match(table, {{from, to, '$1'}, '$2'})
+    |> Enum.reduce(-1, fn
+      ([tf, count], prev)
+        when prev + 1 == prev ->
+          IO.write file, ",#{count}"
+          tf
+      ([tf, count], prev) -> #Add zeroes into empty places
+          IO.write file, String.duplicate(",0", tf - prev - 1)
+          IO.write file, ",#{count}"
+          tf
+    end)
+
+    IO.write String.duplicate(",0", max_tf - last)
   end
 
-  defp write_cars(file, max_tf, dict) do
-    range = for i <- 0..max_tf do
-      Dict.get(dict, i, 0)
+#Calculate delay
+  def calculate_delay(%Aggregator{segments: segments, junctions: junctions, global: global}) do
+    Oracle.reset_current(global.oracle)
+
+    s = Task.async fn ->
+      get_grouped_resource(segments) #Get segments grouped by {from, to}
+      |> Stream.chunk(50, 50, []) #Create meaningful chunks
+      |> Stream.map(&Task.async(fn -> current_segment(&1, global) end)) #Start all as async tasks
+      |> Enum.reduce(nil, fn (t, _) -> Task.await(t) end) #Wait for all tasks to finish
     end
-    IO.write file, Enum.join(range, ",")
-  end
 
-#GenServer
-  def init(g) do
-    {:ok, %Aggregator{ global: g, segments: HashDict.new(), junctions: HashDict.new() } }
-  end
-
-  def handle_cast({:insert, from, via, to, segment_time, junction_time}, state) do
-    timeframe_fn = Global.timeframe_fn(state.global)
-    s_tf = timeframe_fn.(segment_time)
-    j_tf = timeframe_fn.(junction_time)
-
-    default_s = Dict.put_new(%{}, s_tf, 1)
-    segments = HashDict.update(state.segments, {from, via}, 
-              default_s, fn(d) -> Dict.update(d, s_tf, 1, &(&1 + 1)) end )
-
-    if to != nil do
-      default_j = Dict.put_new(%{}, j_tf, 1)
-      junctions = HashDict.update(state.junctions, {from, via}, 
-                default_j, fn(d) -> Dict.update(d, j_tf, 1, &(&1 + 1)) end )
-    else
-      junctions = state.junctions
+    j = Task.async fn ->
+      get_grouped_resource(junctions) #Get junctions grouped by {from, to}
+      |> Stream.chunk(50, 50, []) #Create meaningful chunks
+      |> Stream.map(&Task.async(fn -> current_junction(&1, global) end)) #Start all as async tasks
+      |> Enum.reduce(nil, fn (t, _) -> Task.await(t) end) #Wait for all tasks to finish
     end
-    {:noreply, %Aggregator{ global: state.global, segments: segments, junctions: junctions } }
+
+    Task.await(s)
+    Task.await(j)
   end
 
-  def handle_cast({:delete, from, via, to, segment_time, junction_time}, state) do
-    timeframe_fn = Global.timeframe_fn(state.global)
-    s_tf = timeframe_fn.(segment_time)
-    j_tf = timeframe_fn.(junction_time)
+#Get resource grouped by same {from, to}
+  defp get_grouped_resource(table) do
+    get_resource(table, 1)
+    |> Stream.chunk_by(fn({{from, to, _tf}, _count}) -> {from, to} end)
+  end
 
-    segments = HashDict.update!(state.segments, {from, via},
-        fn (d) -> Dict.update!(d, s_tf, &(&1 - 1)) end)
-    
-    if to != nil do
-      junctions = HashDict.update!(state.junctions, {from, via},
-          fn (d) -> Dict.update!(d, j_tf, &(&1 - 1)) end)
-    else
-      junctions = state.junctions
+  defp get_resource(table, limit) do
+    Stream.resource fn -> :ets.match(table, :'$1', limit) end,
+      fn
+        :"$end_of_table" -> {:halt, nil}
+        {[match], cont} -> {match, :ets.match(cont)}
+        {matches, cont} -> {matches, :ets.match(cont)}
+      end,
+      fn _ -> nil end
+  end
+
+  defp current_junction(chunk, global) do
+    for single <- chunk do
+      {from, to, dict} = single_to_dict(single)
+      r = Delay.junction(global, from, to, dict)
+      Oracle.current_delay_result(global.oracle, :junction, from, to, r)
     end
-    {:noreply, %Aggregator{ global: state.global, segments: segments, junctions: junctions} }
   end
 
-  def handle_call(:info, _from, state) do
-    {:reply, state, state}
+  defp current_segment(chunk, global) do
+    for single <- chunk do
+      {from, to, dict} = single_to_dict(single)
+      r = Delay.segment(global, from, to, dict)
+      Oracle.current_delay_result(global.oracle, :segment, from, to, r)
+    end
   end
 
-  def handle_call(:calculate, from, state) do
-    {:reply, Oracle.reset_current(state.global.oracle), state}
-    counter = Counter.new(fn (_) -> GenServer.reply(from, :calculated) end)
-    #Get all segments
-    chunk(state.segments, 50, &spawn_current_segment(&1, state.global, counter))
-
-    #Get all junctions
-    chunk(state.junctions, 50, &spawn_current_junction(&1, state.global, counter))
-
-    Counter.all_started(counter)
-    {:noreply, state}
+#Convert enum of single values into Dict for Delay
+  defp single_to_dict(single) do
+    {{from, to, _tf}, _count} = hd(single)
+    dict = Enum.into(single, %{}, fn {{_from, _to, tf}, count} -> {tf, count} end)
+    {from, to, dict}
   end
 
-  def handle_call({:compare, %Aggregator{ segments: l_segments, junctions: l_junctions}}, _from, state) do
-    s = l_segments == state.segments
-    j = l_junctions == state.junctions
-    IO.inspect {s, j}
-    {:reply, s and j, state}
+  def compare(%Aggregator{} = current, %Aggregator{} = previous) do
+    s = compare_tables(current.segments, previous.segments)
+    j = compare_tables(current.junctions, previous.junctions)
+    s and j
   end
 
-  defp spawn_current_junction(chunk, global, counter) do
-    Counter.spawn counter, fn -> 
-        for {{from, to}, dict} <- chunk do
-          r = Delay.junction(global, from, to, dict)
-          Oracle.current_delay_result(global.oracle, :junction, from, to, r)
-        end
-      end
-  end
+  defp compare_tables(t1, t2) do
+    #Represent both tables as sources - with chunks of 50 elements each
+    s1 = get_resource(t1, 50)
+    s2 = get_resource(t2, 50)
 
-  defp spawn_current_segment(chunk, global, counter) do
-    Counter.spawn counter, fn -> 
-        for {{from, to}, dict} <- chunk do
-          r = Delay.segment(global, from, to, dict)
-          Oracle.current_delay_result(global.oracle, :segment, from, to, r)
-        end
-      end
-  end
+    res = Stream.zip(s1, s2) #Zip them
+    |> Stream.drop_while(fn {l1, l2} -> l1 == l2 end) #Drop until same
+    |> Stream.take(1) #Take single element
+    |> Enum.to_list #If tables where the same, drop_while removed the whole list
 
-#Split into chunks of count, pass each to callback
-  def chunk([], _count, _callback) do
+    res == []
   end
-
-  def chunk(list, count, callback) do
-    {chunk, next} = Enum.split(list, count)
-    callback.(chunk)
-    chunk(next, count, callback)
-  end
-
 end
-

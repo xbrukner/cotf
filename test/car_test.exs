@@ -36,11 +36,15 @@ defmodule CarTest do
     :ok = Car.calculate_and_send(c)
 
     info = Aggregator.get_info(g.aggregator)
-    assert Dict.get(info.junctions, {"A", "G"}) == %{1911 => 1}
-    assert Dict.get(info.junctions, {"G", "I"}) == %{2471 => 1}
-    assert Dict.get(info.segments, {"I", "H"}) == %{2552 => 1}
-    assert Dict.get(info.segments, {"G", "I"}) == %{1992 => 1}
-    assert Dict.get(info.segments, {"A", "G"}) == %{0 => 1}
+    assert info.junctions == [
+      {{"A", "G", 1911}, 1},
+      {{"G", "I", 2471}, 1}
+    ]
+    assert info.segments == [
+      {{"A", "G", 0}, 1},
+      {{"G", "I", 1992}, 1},
+      {{"I", "H", 2552}, 1}
+    ]
   end
 
   test "Car can calculate time twice" do

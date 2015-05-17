@@ -99,7 +99,7 @@ defmodule Car do
     else
       %Car{ state | plan: new_plan, fixpoint_plan_type: type}
     end
-    {:reply, :ok, newstate}
+    {:reply, :ok, newstate, :hibernate}
   end
 
 #termination
@@ -139,6 +139,8 @@ defmodule Car do
       |> elem(0)
     end
 
+    #Look at plan description for understanding why in this case
+    # vertexTime = segmentTime and edgeTime = junctionTime
     {via, vertexTime, edgeTime} = next
     {via, {from, via, to, vertexTime, edgeTime} }
   end

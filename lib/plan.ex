@@ -7,13 +7,22 @@ defmodule Plan do
 
 #Data to be sent to server:
 # {A, B, C, B.vertexTime, B.edgeTime} = {A, B, C, 0, 1}
-# {B, C, nil, 3, nil}
+# {B, C, nil, C.vertexTime, nil} = {B, C, nil, 3, nil}
+
+# B.vertexTime = time when entering segment A -> B
+# = time after finishing junction A
+# B.edgeTime = time when entering junction A -> B -> C
+# = time after finishing segment A -> B
+# C.vertexTime = time after finishing junction A -> B -> C
+# = time when entering segment B -> C
+# C.edgeTime = time when entering junction C -> not sent to server, as car
+# "disappears" when it arrives to destination
 
 # Last edge time is only for total travel time, is never sent to the server
 # Time = total travel time
 # Start time = steps[0].vertexTime
   def empty() do
-    %Plan{}  
+    %Plan{}
   end
 
   def empty?(plan) do
@@ -53,4 +62,3 @@ defmodule Plan do
     %Plan{from: plan.from, to: plan.to, steps: [first] ++ steps, time: total - f_vt}
   end
 end
-

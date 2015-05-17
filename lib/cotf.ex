@@ -112,15 +112,13 @@ defmodule Cotf do
   end
 
   defp aggregate_compare(global, nil) do
-    {false, Aggregator.get_info(global.aggregator) }
+    {false, Aggregator.get_copy(global.aggregator) }
   end
 
-  defp aggregate_compare(global, info) do
-    {Aggregator.compare(global.aggregator, info), Aggregator.get_info(global.aggregator)}
-  end
-
-  defp aggregate_list_info(global) do
-    Aggregator.get_info(global.aggregator)
+  defp aggregate_compare(global, l_info) do
+    cmp = Aggregator.compare(global.aggregator, l_info)
+    Aggregator.stop(l_info)
+    {cmp, Aggregator.get_copy(global.aggregator)}
   end
 
   defp calculate_durations(global) do
@@ -174,17 +172,19 @@ defmodule Cotf do
   defp fixpoint_plan2(global, car_objects, type, iteration, l_infos) do
     puts " Iteration #{iteration}"
     car_fixpoint_plan(global, car_objects, type)
-    info = aggregate_list_info(global)
-    if info in l_infos do
+    found = Enum.any?(l_infos, &Aggregator.compare(global.aggregator, &1))
+    if found do
       puts "done!"
-      info
+      Enum.each(l_infos, &Aggregator.stop(&1))
+      global.aggregator
     else
       if iteration == 100 do
         puts "done! (100)"
-        info
+        Enum.each(l_infos, &Aggregator.stop(&1))
+        global.aggregator
       else
         Aggregator.calculate_delay(global.aggregator)
-        fixpoint_plan2(global, car_objects, type, iteration + 1, [info] ++ l_infos)
+        fixpoint_plan2(global, car_objects, type, iteration + 1, [Aggregator.get_copy(global.aggregator)] ++ l_infos)
       end
     end
   end
