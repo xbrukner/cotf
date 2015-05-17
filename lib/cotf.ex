@@ -176,11 +176,11 @@ defmodule Cotf do
     car_fixpoint_plan(global, car_objects, type)
     info = aggregate_list_info(global)
     if info in l_infos do
-      IO.puts "done!"
+      puts "done!"
       info
     else
       if iteration == 100 do
-        IO.puts "done! (100)"
+        puts "done! (100)"
         info
       else
         Aggregator.calculate_delay(global.aggregator)
