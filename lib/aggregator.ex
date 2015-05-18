@@ -51,8 +51,11 @@ defmodule Aggregator do
 #Junction:
 #from, via, type, .... orig cars ...., ....latest cars....
 
-    write_segment(map, prefix, max_tf, original.segments, latest.segments)
-    write_junction(map, prefix, max_tf, original.junctions, latest.junctions)
+    seg = Task.async(fn -> write_segment(map, prefix, max_tf, original.segments, latest.segments) end)
+    jun = Task.async(fn -> write_junction(map, prefix, max_tf, original.junctions, latest.junctions) end)
+
+    Task.await(seg, :infinity)
+    Task.await(jun, :infinity)
     max_tf
   end
 

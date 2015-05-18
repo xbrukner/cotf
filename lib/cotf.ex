@@ -40,8 +40,10 @@ defmodule Cotf do
 
     file_prefix = time_prefix()
     puts "Saving output with #{file_prefix} prefix..."
-    output_cars(file_prefix, car_objects)
-    output_aggregation(file_prefix, original, latest, global)
+    cars = Task.async(fn -> output_cars(file_prefix, car_objects) end)
+    aggr = Task.async(fn -> output_aggregation(file_prefix, original, latest, global) end)
+    Task.await(cars, :infinity)
+    Task.await(aggr, :infinity)
     puts "done!"
   end
 
