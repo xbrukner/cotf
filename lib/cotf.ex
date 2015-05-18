@@ -131,16 +131,14 @@ defmodule Cotf do
 
   defp calculate_plan(car_objects, all) do
     puts "  Calculating plan..."
-    c = Counter.Waiter.new()
-    for car <- car_objects do
-      if all or :random.uniform(40) == 1 do
-        Counter.Waiter.spawn c, fn ->
-          Car.calculate_and_send(car)
-        end
-      end
+
+    objects = if all do
+      car_objects
+    else
+      Enum.filter(car_objects, fn _ -> :random.uniform(40) == 1 end)
     end
-    Counter.Waiter.all_started(c)
-    Counter.Waiter.wait_for(c)
+
+    CarPool.calculation(objects, &Car.calculate_and_send/1)
     puts "  done!"
   end
 
@@ -190,14 +188,7 @@ defmodule Cotf do
   end
 
   defp car_fixpoint_plan(global, car_objects, type) do
-    c = Counter.Waiter.new()
-    for car <- car_objects do
-      Counter.Waiter.spawn c, fn ->
-        Car.fixpoint_plan(car, global, type)
-      end
-    end
-    Counter.Waiter.all_started(c)
-    Counter.Waiter.wait_for(c)
+    CarPool.calculation(car_objects, &Car.fixpoint_plan(&1, global, type))
   end
 
   defp puts(text) do

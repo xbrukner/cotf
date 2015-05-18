@@ -7,7 +7,7 @@ defmodule Aggregator do
     pid
   end
 
-  def insert(pid, {from, via, to, segment_time, junction_time}) 
+  def insert(pid, {from, via, to, segment_time, junction_time})
     when is_pid(pid) do
     GenServer.cast(pid, {:insert, from, via, to, segment_time, junction_time})
   end
@@ -55,7 +55,7 @@ defmodule Aggregator do
     write_junction(map, prefix, max_tf, original.junctions, latest.junctions)
     max_tf
   end
-  
+
   defp write_segment(map, file_prefix, max_tf, original, latest) do
     {:ok, file} = File.open("#{file_prefix}segments.csv", [:write, :utf8])
     RoadMap.vertices(map)
@@ -63,7 +63,7 @@ defmodule Aggregator do
           RoadMap.edges(map, v)
           |> Enum.each &write_single_segment(&1, file, max_tf, original, latest)
         end
-    File.close(file) 
+    File.close(file)
   end
 
   defp write_junction(map, file_prefix, max_tf, original, latest) do
@@ -73,7 +73,7 @@ defmodule Aggregator do
           RoadMap.edges(map, v)
           |> Enum.each &write_single_junction(&1, map, file, max_tf, original, latest)
         end
-    File.close(file) 
+    File.close(file)
   end
 
   defp write_single_segment({from, to, length, type}, file, max_tf, original, latest) do
@@ -118,12 +118,12 @@ defmodule Aggregator do
     j_tf = timeframe_fn.(junction_time)
 
     default_s = Dict.put_new(%{}, s_tf, 1)
-    segments = HashDict.update(state.segments, {from, via}, 
+    segments = HashDict.update(state.segments, {from, via},
               default_s, fn(d) -> Dict.update(d, s_tf, 1, &(&1 + 1)) end )
 
     if to != nil do
       default_j = Dict.put_new(%{}, j_tf, 1)
-      junctions = HashDict.update(state.junctions, {from, via}, 
+      junctions = HashDict.update(state.junctions, {from, via},
                 default_j, fn(d) -> Dict.update(d, j_tf, 1, &(&1 + 1)) end )
     else
       junctions = state.junctions
@@ -138,7 +138,7 @@ defmodule Aggregator do
 
     segments = HashDict.update!(state.segments, {from, via},
         fn (d) -> Dict.update!(d, s_tf, &(&1 - 1)) end)
-    
+
     if to != nil do
       junctions = HashDict.update!(state.junctions, {from, via},
           fn (d) -> Dict.update!(d, j_tf, &(&1 - 1)) end)
@@ -168,12 +168,11 @@ defmodule Aggregator do
   def handle_call({:compare, %Aggregator{ segments: l_segments, junctions: l_junctions}}, _from, state) do
     s = l_segments == state.segments
     j = l_junctions == state.junctions
-    IO.inspect {s, j}
     {:reply, s and j, state}
   end
 
   defp spawn_current_junction(chunk, global, counter) do
-    Counter.spawn counter, fn -> 
+    Counter.spawn counter, fn ->
         for {{from, to}, dict} <- chunk do
           r = Delay.junction(global, from, to, dict)
           Oracle.current_delay_result(global.oracle, :junction, from, to, r)
@@ -182,7 +181,7 @@ defmodule Aggregator do
   end
 
   defp spawn_current_segment(chunk, global, counter) do
-    Counter.spawn counter, fn -> 
+    Counter.spawn counter, fn ->
         for {{from, to}, dict} <- chunk do
           r = Delay.segment(global, from, to, dict)
           Oracle.current_delay_result(global.oracle, :segment, from, to, r)
@@ -201,4 +200,3 @@ defmodule Aggregator do
   end
 
 end
-
