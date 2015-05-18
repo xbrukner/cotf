@@ -13,7 +13,7 @@ defmodule Delay do
   defp junction(tf_duration, {tf, duration}, { {last_tf, last_delay}, res}) do
     overflow = last_delay - (tf - last_tf) * tf_duration
     altered_duration = duration + if overflow > 0 do overflow else 0 end
-    
+
     { {tf, altered_duration}, Dict.put_new(res, tf, altered_duration) }
   end
 
@@ -50,13 +50,14 @@ defmodule Delay do
         |> extend_last_speed(length)
 
       total_time = Enum.reduce(speeds, 0, fn ({_s, _l, t}, acc) -> t + acc end)
-      ^length = Enum.reduce(speeds, 0, fn ({_, l, _}, acc) -> l + acc end)
+      #TODO - Safe check with margin
+      #^length = Enum.reduce(speeds, 0, fn ({_, l, _}, acc) -> l + acc end)
     end
-    my_group_length = group_length(cars, speeds, constants) 
+    my_group_length = group_length(cars, speeds, constants)
     end_group_time = my_group_length / last_speed(speeds) * 3600
     finish_time_l = start_time + total_time + end_group_time
 #IO.inspect {"finish_time_l", finish_time_l, start_time + total_time, my_group_length, end_group_time, speed, total_time, total_time + end_group_time / 2, speeds}
-    { {start_time, finish_time_l, my_group_length, speeds }, 
+    { {start_time, finish_time_l, my_group_length, speeds },
         Dict.put_new(res, tf, total_time + end_group_time / 2) }
   end
 
@@ -105,7 +106,7 @@ defmodule Delay do
 #IO.inspect l_speeds
     extend_last_speed(segment_length, l_speeds, 0, [])
   end
-  
+
   defp extend_last_speed(segment_length, [{speed, length, _}], total_length, reversed) do
     true = segment_length >= total_length + length #assert
     [ {speed, segment_length - total_length, (segment_length - total_length) / speed * 3600} ] ++ reversed
@@ -168,7 +169,7 @@ defp catch_up_start(first_car_distance, l_group_length, l_speeds_remaining, my_s
   end
 
 #Next group did not reach previous with this speed -> add covered distance and time
-  defp catch_up(remaining_distance, [{speed, _length, time} | l_rest], my_speed, covered_time) 
+  defp catch_up(remaining_distance, [{speed, _length, time} | l_rest], my_speed, covered_time)
     when remaining_distance > (my_speed - speed) * time / 3600  do
     catch_up(remaining_distance - (my_speed - speed) * time / 3600, l_rest, my_speed, time + covered_time)
   end
@@ -209,4 +210,3 @@ defp catch_up_start(first_car_distance, l_group_length, l_speeds_remaining, my_s
   end
 
 end
-
