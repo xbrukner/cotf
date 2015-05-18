@@ -140,7 +140,7 @@ defmodule Cotf do
       Enum.filter(car_objects, fn _ -> :random.uniform(40) == 1 end)
     end
 
-    CarPool.calculation(objects, &Car.calculate_and_send/1)
+    CarPool.calculation(objects, &Car.calculate_and_send/2, true)
     puts "  done!"
   end
 
@@ -190,7 +190,7 @@ defmodule Cotf do
   end
 
   defp car_fixpoint_plan(global, car_objects, type) do
-    CarPool.calculation(car_objects, &Car.fixpoint_plan(&1, global, type))
+    CarPool.calculation(car_objects, &Car.fixpoint_plan(&1, global, type), false)
   end
 
   defp puts(text) do

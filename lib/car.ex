@@ -11,8 +11,8 @@ defmodule Car do
     GenServer.call(pid, :info, :infinity)
   end
 
-  def calculate_plan(pid) do
-    GenServer.call(pid, :calculate_plan, :infinity)
+  def calculate_plan(pid, resource) do
+    GenServer.call(pid, {:calculate_plan, resource}, :infinity)
   end
 
   def send_plan(pid) do
@@ -20,8 +20,8 @@ defmodule Car do
   end
 
   #Calculate new plan, send it to aggregator and hibernate (to save memory)
-  def calculate_and_send(pid) do
-    GenServer.call(pid, :calculate_send, :infinity)
+  def calculate_and_send(pid, resource) do
+    GenServer.call(pid, {:calculate_send, resource}, :infinity)
   end
 
   def result(pid) do
@@ -49,14 +49,14 @@ defmodule Car do
       state}
   end
 
-  def handle_call(:calculate_plan, _from, state) do
+  def handle_call({:calculate_plan, resource}, _from, state) do
     if Plan.empty?(state.last_plan) do #Second plan - save original plan
       orig_plan = state.plan
       state = %Car{state | orig_plan: orig_plan }
     end
     state = %Car{state | last_plan: state.plan} #Copy last plan
 
-    plan = Planner.route(state.global.planner, state.from, state.to, state.start_time)
+    plan = Planner.route(state.global.planner, resource, state.from, state.to, state.start_time)
     state = %Car{state | plan: plan}
     {:reply, :ok, state}
   end
@@ -72,8 +72,8 @@ defmodule Car do
     {:reply, :ok, state}
   end
 
-  def handle_call(:calculate_send, from, state) do
-    {:reply, :ok, state} = handle_call(:calculate_plan, from, state)
+  def handle_call({:calculate_send, resource}, from, state) do
+    {:reply, :ok, state} = handle_call({:calculate_plan, resource}, from, state)
     {:reply, :ok, state} = handle_call(:send_plan, from, state)
     {:reply, :ok, state, :hibernate}
   end
